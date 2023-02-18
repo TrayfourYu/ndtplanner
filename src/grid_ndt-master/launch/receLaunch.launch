@@ -1,0 +1,34 @@
+<launch>
+<node
+pkg="grid_ndt"
+type="receivePcd"
+name="receivePcd"
+output="screen"
+>
+<param name="demand" type="string" value="slope" />
+<param name="filename" type="string" value="bridge_ground.pcd" />
+<param name="resolution" type="double" value="0.1" />
+<param name="slope_interval" type="double" value="0.08" />
+<param name="z_resolution" type="double" value="0.05" />
+<param name="RobotRange" type="double" value="0.5" />
+<param name="reachableHeight" type="double" value="0.2" />
+<param name="reachableRough" type="double" value="0.1" />
+<param name="reachableAngle" type="double" value="30.0" />
+
+<param name="angle_size" type="int" value="30" />
+<param name="curve_weight" type="double" value="1.1" />
+<param name="h_weight" type="double" value="2.0" />
+<param name="getup_weight" type="double" value="1.3" />
+<param name="primitive_num" type="int" value="7" />
+<param name="rip_num" type="int" value="7" />
+<param name="step_width" type="double" value="1.5" />
+<param name="goal_radius" type="double" value="0.5" />
+</node>
+
+<node
+name="rviz"
+pkg="rviz"
+type="rviz"
+args="-d $(find grid_ndt)/launch/freiburg_23tri.rviz" output="log"
+/>
+</launch>

@@ -1,0 +1,11 @@
+<launch>
+<node
+pkg="grid_ndt"
+type="publishPcd"
+name="publishPcd"
+output="screen"
+>
+    <param name="filename1" type="string" value="bridge_ground.pcd" />
+</node>
+
+</launch>
