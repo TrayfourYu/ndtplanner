@@ -198,6 +198,7 @@ int main(int argc, char **argv)
   ros::param::get("~rip_num",planner_config.rip_num);
   ros::param::get("~step_width",planner_config.step_width);
   ros::param::get("~goal_radius",planner_config.goal_radius);
+  ros::param::get("~is_ramp_angle",planner_config.is_ramp_angle);
   float tmp_step = planner_config.step_width / 5.0;
   planner_config.step_min = std::max(tmp_step, resolution);
 

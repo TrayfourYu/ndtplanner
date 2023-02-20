@@ -38,6 +38,7 @@ class AstarPlanar{
     int rip_num;
     float step_width;
     float step_min;
+    float isRampAngle;
     double goal_radius;
     double descretized_angle;
     std::vector<std::vector<NodeUpdate>> state_update_table_;
@@ -140,6 +141,13 @@ class AstarPlanar{
         }
     }
 
+    bool IsOnTheRamp(const Vector3& p1, const Vector3& p2, float angle){
+        float delta_l = sqrt(pow(p1(0) - p2(0),2)+pow(p1(1) - p2(1),2));
+        float delta_tan_theta = abs(p1(2) - p2(2)) / delta_l;
+        if(delta_tan_theta >= tanf(M_PI / 180.0 *angle)) return true;
+        else return false;
+    }
+
 public:
     AstarPlanar(Vector3 start,Vector3 goal, Config planner_config):start(start),goal(goal){
         angle_size = planner_config.angle_size;
@@ -148,6 +156,7 @@ public:
         getup_weight = planner_config.getup_weight;
         primitive_num = planner_config.primitive_num;
         rip_num = planner_config.rip_num;
+        isRampAngle = planner_config.is_ramp_angle;
         step_width = planner_config.step_width;
         descretized_angle = 2.0 * M_PI / angle_size;
         goal_radius = planner_config.goal_radius;
@@ -198,7 +207,7 @@ public:
 
                     Slope * cur_slope = map2D.findSlope(cur_morton_xy, cur_morton_z);
 
-                    double cur_x = tmp.pos(0), cur_y = tmp.pos(1), cur_z = tmp.pos(2);
+                    float cur_x = tmp.pos(0), cur_y = tmp.pos(1), cur_z = tmp.pos(2);
                     int cur_theta;
                     //map2D.transXYMorton(cur_x, cur_y, cur_morton_xy);
                     cur_theta = tmp.index_theta;
@@ -224,10 +233,11 @@ public:
                     }
 
                     bool isRamp = false;
-                    Vector3f z_mormal(0,0,1);
-                    if(map2D.countAngle(cur_slope->normal, z_mormal) >= 0.5 * robot.getAngle())
-                        isRamp = true;
-                    
+                    if(cur->parent != NULL){
+                        if(IsOnTheRamp(cur->parent->pos, cur->pos, isRampAngle))
+                            isRamp = true;
+                    }
+                   
                     // for each update
                     for(const auto &state : state_update_table_[cur_theta]){
                         if(isRamp && abs(state.rotation) >= descretized_angle) continue;

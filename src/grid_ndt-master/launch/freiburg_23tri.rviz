@@ -29,6 +29,7 @@ Panels:
         - /MarkerArray3
         - /PointCloud21
         - /Path1
+        - /Path1/Offset1
         - /InteractiveMarkers1
       Splitter Ratio: 0.5
     Tree Height: 463
@@ -81,7 +82,7 @@ Visualization Manager:
       Marker Topic: /route_marker_array
       Name: MarkerArray
       Namespaces:
-        {}
+        traversibility: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -128,9 +129,9 @@ Visualization Manager:
       Offset:
         X: 0
         Y: 0
-        Z: 0
+        Z: 0.100000001
       Pose Color: 255; 85; 255
-      Pose Style: None
+      Pose Style: Axes
       Radius: 0.0299999993
       Shaft Diameter: 0.100000001
       Shaft Length: 0.100000001
@@ -178,18 +179,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.31129539
-        Y: 2.60742617
-        Z: 4.81838697e-06
+        X: 12.5334625
+        Y: 4.21492195
+        Z: 3.86471265e-06
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.655395985
+      Pitch: 0.415395707
       Target Frame: <Fixed Frame>
       Value: ThirdPersonFollower (rviz)
-      Yaw: 3.93039465
+      Yaw: 0.8253932
     Saved: ~
 Window Geometry:
   Displays:

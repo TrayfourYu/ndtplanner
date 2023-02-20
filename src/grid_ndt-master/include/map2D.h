@@ -429,15 +429,21 @@ class TwoDmap {
             if((*itSlope)->status == STATUS::OBS)
                 return true;
 
-            if(abs((*itSlope)->mean(2) - slope->mean(2) ) > robot.getReachableHeight())
-                return true;
+            // if(abs((*itSlope)->mean(2) - slope->mean(2) ) > robot.getReachableHeight())
+            //     return true;
             
             if((*itSlope)->rough > robot.getRough())
                 return true;
 
-            Vector3f z_normal(0,0,1);
-            if(countAngle((*itSlope)->normal,z_normal) > robot.getAngle())
+            float delta_l = sqrt(pow((*itSlope)->mean(0) - slope->mean(0), 2)
+                            + pow((*itSlope)->mean(1) - slope->mean(1), 2));
+            float delta_z = sqrt(pow((*itSlope)->mean(2) - slope->mean(2), 2));
+            float delta_theta = delta_z/delta_l;
+            if(delta_theta > tanf(M_PI / 180.0 * robot.getAngle()))
                 return true;
+            // Vector3f z_normal(0,0,1);
+            // if(countAngle((*itSlope)->normal,z_normal) > robot.getAngle())
+            //     return true;
 
             itSlope++;
         }

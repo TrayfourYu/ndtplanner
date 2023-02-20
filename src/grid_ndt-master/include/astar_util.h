@@ -22,6 +22,7 @@ struct Config
   float step_width;
   float step_min;
   float goal_radius;
+  float is_ramp_angle = 15.0;
 };
 
 struct SimpleSlope

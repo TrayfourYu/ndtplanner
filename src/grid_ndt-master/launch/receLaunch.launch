@@ -19,8 +19,8 @@ output="screen"
 <param name="curve_weight" type="double" value="1.1" />
 <param name="h_weight" type="double" value="2.0" />
 <param name="getup_weight" type="double" value="1.3" />
-<param name="primitive_num" type="int" value="7" />
-<param name="rip_num" type="int" value="7" />
+<param name="primitive_num" type="int" value="9" />
+<param name="rip_num" type="int" value="9" />
 <param name="step_width" type="double" value="1.5" />
 <param name="goal_radius" type="double" value="0.5" />
 </node>
