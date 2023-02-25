@@ -1,5 +1,6 @@
 #ifndef GLOBALPLAN_H
 #define GLOBALPLAN_H
+#include "common_definition.h"
 #include "map2D.h"
 #include<queue>
 #include<unordered_map>
@@ -7,6 +8,7 @@
 #include <nav_msgs/Path.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
+#include <tinyspline_ros/tinysplinecpp.h>
 //#include "Vec3.h"
 using namespace std;
 using namespace daysun;
@@ -348,36 +350,38 @@ public:
                 global_path.push_front(i->father);
                 path_pose.push_front(j->parent);
 
-                // Set tf pose
-                tf::Vector3 origin((j->pos)(0), (j->pos)(1), (j->pos)(2));
-                tf::Pose tf_pose;
-                tf_pose.setOrigin(origin);
-                tf_pose.setRotation(tf::createQuaternionFromYaw(j->index_theta * descretized_angle));
+                Vector3f normal = map2D.GetGroundNormal(i, robot);
 
-                // Transform path to global frame
-                //tf_pose = map2ogm_ * tf_pose;
+                tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
+                tf::Matrix3x3 m(rot);
+                double roll, pitch, yaw;
+                m.getRPY(roll, pitch, yaw);
 
-                // Set path as ros message
                 geometry_msgs::PoseStamped ros_pose;
-                tf::poseTFToMsg(tf_pose, ros_pose.pose);
+                ros_pose.pose.position.x = (j->pos)(0);
+                ros_pose.pose.position.y = (j->pos)(1);
+                ros_pose.pose.position.z = (j->pos)(2);
+                ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
                 ros_pose.header = header;
                 path_.poses.push_back(ros_pose);
 
                 i = global_path.front();
                 j = path_pose.front();
             }
-            
-            tf::Vector3 origin((j->pos)(0), (j->pos)(1), (j->pos)(2));
-            tf::Pose tf_pose;
-            tf_pose.setOrigin(origin);
-            tf_pose.setRotation(tf::createQuaternionFromYaw(j->index_theta * descretized_angle));
+    
+            Vector3f normal = map2D.GetGroundNormal(i, robot);
 
-            // Transform path to global frame
-            //tf_pose = map2ogm_ * tf_pose;
+            tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
+            tf::Matrix3x3 m(rot);
+            double roll, pitch, yaw;
+            m.getRPY(roll, pitch, yaw);
 
             // Set path as ros message
             geometry_msgs::PoseStamped ros_pose;
-            tf::poseTFToMsg(tf_pose, ros_pose.pose);
+            ros_pose.pose.position.x = (j->pos)(0);
+            ros_pose.pose.position.y = (j->pos)(1);
+            ros_pose.pose.position.z = (j->pos)(2);
+            ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
             ros_pose.header = header;
             path_.poses.push_back(ros_pose);
 
@@ -391,7 +395,7 @@ public:
         }
     }
 
-    void samplePathByStepLength(double step) {
+    void samplePathByStepLength(double step,TwoDmap & map2D, RobotSphere & robot) {
         if (this->path_.poses.empty()) {
             return;
         }
@@ -430,10 +434,8 @@ public:
                     ros_pose.pose.position.x = x1 + cos(t1) * step * j;
                     ros_pose.pose.position.y = y1 + sin(t2) * step * j;
                     ros_pose.pose.position.z = z1 + (j * (z2 - z1) / (size - 1)) ;
-                    ros_pose.pose.orientation = path_.poses.at(i).pose.orientation;
+                    InsertOrien(map2D, robot, ros_pose, t1);
                     dense_path_.poses.push_back(ros_pose);
-
-                    //cout<<"size: "<<size<<", j / size: "<<(j * (z2 - z1) / (size - 1))<<", interval z: "<<ros_pose.pose.position.z<<endl;
                 }
             } else if (delta_t > 0) {
                 // left turn
@@ -450,7 +452,8 @@ public:
                     ros_pose.pose.position.x = center_x + cos(heading - M_PI / 2.0)*R;
                     ros_pose.pose.position.y = center_y + sin(heading - M_PI / 2.0)*R;
                     ros_pose.pose.position.z = z1 + (j * (z2 - z1) / (size - 1));
-                    ros_pose.pose.orientation = tf::createQuaternionMsgFromYaw(heading);
+                    InsertOrien(map2D, robot, ros_pose, heading);
+                    //ros_pose.pose.orientation = tf::createQuaternionMsgFromYaw(heading);
                     dense_path_.poses.push_back(ros_pose);
                 }
             
@@ -470,10 +473,30 @@ public:
                     ros_pose.pose.position.x = center_x + cos(heading + M_PI / 2.0)*R;
                     ros_pose.pose.position.y = center_y + sin(heading + M_PI / 2.0)*R;
                     ros_pose.pose.position.z = z1 + (j * (z2 - z1) / (size - 1));
-                    ros_pose.pose.orientation = tf::createQuaternionMsgFromYaw(heading);
+                    InsertOrien(map2D, robot, ros_pose, heading);
+                    //ros_pose.pose.orientation = tf::createQuaternionMsgFromYaw(heading);
                     dense_path_.poses.push_back(ros_pose);
                 }
             }
+        }
+        savingForSpeed(toStatePath(),map2D, robot);
+    }
+
+    void InsertOrien(TwoDmap & map2D, RobotSphere & robot, geometry_msgs::PoseStamped& ros_pose, const double& heading){
+        Slope* tmp = map2D.GetSlopeFromXYZ(ros_pose.pose.position.x, ros_pose.pose.position.y,ros_pose.pose.position.z);
+        if(tmp == NULL){
+            tf::Quaternion rot(dense_path_.poses.back().pose.orientation.x, dense_path_.poses.back().pose.orientation.y,dense_path_.poses.back().pose.orientation.z, dense_path_.poses.back().pose.orientation.w);
+            tf::Matrix3x3 m(rot);
+            double roll, pitch, yaw;
+            m.getRPY(roll, pitch, yaw);
+            ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, heading);
+        }else{
+            Vector3f normal = map2D.GetGroundNormal(tmp, robot);
+            tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
+            tf::Matrix3x3 m(rot);
+            double roll, pitch, yaw;
+            m.getRPY(roll, pitch, yaw);
+            ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, heading);
         }
     }
 
@@ -489,6 +512,119 @@ public:
                 marker_pub.publish(dense_path_);
             }
         }
+    }
+
+    std::vector<State> toStatePath() {
+        std::vector<State> path;
+        State state;
+        for (const auto &pose : dense_path_.poses) {
+            state.pose = state.pose.msgToPose(pose.pose);
+            // tf::Quaternion rot(pose.pose.orientation.x, pose.pose.orientation.y,
+            //                    pose.pose.orientation.z,pose.pose.orientation.w);
+            // tf::Vector3 normal = rot.getAxis();
+            // normal.normalize();
+            // cout<<"normal_x: "<<normal.x()<<", normal_y: "<<normal.y()<<", normal_z: "<<normal.z()<<endl;
+            // state.n = Point3(normal.x(), normal.y(), normal.z());
+            path.emplace_back(state);
+        }
+        return path;
+    }
+
+    void savingForSpeed(const std::vector<State> &input, TwoDmap & map2D, RobotSphere & robot) {
+        std::vector<double> ctrlp;
+        for (const auto &state : input) {
+            ctrlp.push_back(state.pose.x);
+            ctrlp.push_back(state.pose.y);
+            ctrlp.push_back(state.pose.z);
+        }
+        tinyspline::BSpline curve(ctrlp.size() / 3, 3, 8, TS_CLAMPED);
+        curve.setControlPoints(ctrlp);
+        auto dcurve = curve.derive();
+        auto ddcurve = dcurve.derive();
+        size_t size = 1e4;
+        double du = 1.0 / static_cast<double>(size);
+        std::vector<State> path;
+        State state;
+        state.s = 0;
+        int count = 0;
+        for (size_t i(0); i <= size; ++i) {
+            const double u = du * static_cast<double>(i);
+            auto result = curve.eval(u).result();
+            //position
+            state.pose =
+                Pose3d(result[0], result[1], result[2]);
+            if (i == 0 || i == size ||
+                path.back().pose.EuclidDis2D(state.pose) >= 0.1) {
+                result = dcurve.eval(u).result();
+                Point3 dr(result[0], result[1], result[2]);
+                result = ddcurve.eval(u).result();
+                Point3 ddr(result[0], result[1], result[2]);
+                double vel = dr.norm();
+                //alpha
+                state.alpha = dr / vel;
+
+                Mat<3> proj = state.alpha * state.alpha.transpose();
+                proj = Mat<3>::Identity() - proj;
+                auto kn = proj * ddr / vel / vel;
+                //kappa
+                state.k = kn.norm();  // dr.cross(ddr).norm() / pow(vel, 3);
+                //beta
+                state.beta = kn / state.k;
+                //s
+                if (i > 0) {
+                    state.s = path.back().s + path.back().pose.EuclidDis2D(state.pose);
+                } else {
+                    state.s = 0;
+                }
+
+                //n
+                Slope * tmp = map2D.findNearstSlope(state.pose.x, state.pose.y, state.pose.z, 
+                                                    robot.getReachableHeight());
+                if(tmp != NULL){
+                    Vector3f normal = map2D.GetGroundNormal(tmp, robot);
+                    state.n = Point3(normal(0),normal(1), normal(2));
+                }else{
+                    state.n = path.back().n;
+                }
+                //euler_angl
+                Mat<3> rot_matrix;
+                rot_matrix.col(0) = state.alpha;
+                rot_matrix.col(2) = state.n;
+                rot_matrix.col(1) = state.n.cross(state.alpha);
+                Quater quat(rot_matrix);
+                tf::Quaternion rot(quat.x(), quat.y(),quat.z(),quat.w());
+                tf::Matrix3x3 m(rot);
+                double roll, pitch, yaw;
+                m.getRPY(roll, pitch, yaw);
+
+                state.euler_angle = Vector<3>(yaw, pitch, roll);
+                path.emplace_back(state);
+                count++;
+            }
+        }
+        printf(">>>> input %d pose, after fitting get %d points\n", (int)input.size(),
+                (int)path.size());
+        std::ofstream fout;
+        fout.open("/home/mr_csc/yu_ws/cache/3dpath_for_speed_planner.csv", std::ios::out);
+        fout << "x,y,z,tx,ty,tz,qx,qy,qz,nx,ny,nz,s,kappa,psi,theta,phi\n";
+        for (const auto &state : path) {
+            fout << std::setprecision(12) << state.pose.x << ","
+                << std::setprecision(12) << state.pose.y << ","
+                << std::setprecision(12) << state.pose.z << ","
+                << std::setprecision(12) << state.alpha.x() << ","
+                << std::setprecision(12) << state.alpha.y() << ","
+                << std::setprecision(12) << state.alpha.z() << ","
+                << std::setprecision(12) << state.beta.x() << ","
+                << std::setprecision(12) << state.beta.y() << ","
+                << std::setprecision(12) << state.beta.z() << ","
+                << std::setprecision(12) << state.n.x() << "," << std::setprecision(12)
+                << state.n.y() << "," << std::setprecision(12) << state.n.z() << ","
+                << std::setprecision(12) << state.s << "," << std::setprecision(12)
+                << state.k << "," << std::setprecision(12) << state.euler_angle(2)
+                << "," << std::setprecision(12) << state.euler_angle(1) << ","
+                << std::setprecision(12) << state.euler_angle(0) << "\n";
+        }
+        fout.close();
     }
 
 };

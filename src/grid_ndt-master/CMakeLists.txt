@@ -11,6 +11,7 @@ visualization_msgs
   interactive_markers
   nodelet
   pcl_ros
+  tinyspline_ros
 )
 find_package(octomap REQUIRED)
 FIND_PACKAGE( PCL REQUIRED COMPONENTS common io )
@@ -73,6 +74,7 @@ add_executable(receivePcd
      include/Vec3.h
      include/map2D.h
      include/robot.h
+     include/common_definition.h
  src/receiver.cpp)
 target_link_libraries(receivePcd
 ${PCL_LIBRARIES}

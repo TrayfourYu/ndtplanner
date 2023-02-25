@@ -1469,6 +1469,101 @@ public:
         return false;
     }
 
+    Slope* findNearstSlope(const float& x, const float& y, const float& z, const float& h){
+        string morton_xy;
+        int morton_z;
+        Vector3 pos(x,y,z);
+        transMortonXY(pos, morton_xy);
+
+        float min_z_diff = FLT_MAX;
+        Slope * min_z_diff_slope;
+        Slope * next_up_slope;
+        //find the corresponding cell-mortonxy
+        map<string,Cell *>::iterator mit=  map_cell.find(morton_xy);
+        if(mit != map_cell.end()){
+            map<int,Slope *,CmpByKeyUD>::iterator sit =   (mit->second)->map_slope.begin();
+            while(sit != (mit->second)->map_slope.end()){
+                if(sit->second->up != true){
+                    float z_diff = abs(z- (sit->second->mean(2)));
+                    if(z_diff < min_z_diff){
+                        min_z_diff_slope = (sit->second);
+                        sit++;
+                        if(sit != (mit->second)->map_slope.end())
+                            next_up_slope = (sit->second);
+                        sit--;
+                        min_z_diff = z_diff;
+                    }
+                }
+                sit++;
+            }
+            if(next_up_slope->mean(2) - min_z_diff_slope->mean(2) > h)
+                return min_z_diff_slope;
+            else
+                return next_up_slope;
+        }else{
+            return NULL;
+        }
+    }
+
+    Slope* GetSlopeFromXYZ(const float& x, const float& y, const float& z){
+        string morton_xy;
+        int morton_z;
+        Vector3 pos(x,y,z);
+        transMortonXYZ(pos, morton_xy, morton_z);
+        map<string,Cell *>::iterator it = map_cell.find(morton_xy);
+        if(it != map_cell.end()){
+            map<int,Slope *,CmpByKeyUD>::iterator ss = (it->second)->map_slope.find(morton_z);
+            if(ss != (it->second)->map_slope.end()){
+                return ss->second;
+            }
+            else{
+                return NULL;
+            }
+        }else{
+            return NULL;
+        }
+
+    }
+
+    Vector3f GetGroundNormal(Slope * slope, RobotSphere& robot){
+        int n = (ceil(2*robot.getRobotR()/gridLen)-1)/2;
+        //find all the surrounding neighbors
+        list<Slope *> nowSlope, addSlope, allSlope;
+        nowSlope.clear();addSlope.clear();
+        allSlope.push_back(slope);
+        nowSlope.push_back(slope);
+        while(n>0){
+            list<Slope *>::iterator itSlope = nowSlope.begin();
+            while(itSlope != nowSlope.end()){
+                list<Slope *> neiSlope = AccessibleNeighbors(*itSlope,robot,2.5);
+                list<Slope *>::iterator itN = neiSlope.begin();
+                while(itN != neiSlope.end()){
+                    if(!isContainedQ(*itN,allSlope)){
+                        addSlope.push_back(*itN);
+                        allSlope.push_back(*itN);
+                    }
+                    itN++;
+                }
+                itSlope++;
+            }
+            n--;
+            nowSlope.clear();
+            nowSlope = addSlope;
+            addSlope.clear();
+        }
+        Vector3f normal(0.0,0.0,0.0);
+        int count = 0;
+        list<Slope *>::iterator itSlope = allSlope.begin();
+        while(itSlope != allSlope.end()){
+            count++;
+            normal = normal + (*itSlope)->normal;
+            itSlope++;
+        }
+        //normal = normal/(float)count;
+        normal.normalize();
+        return normal;
+    }
+
     //compute cost map
     void computeCost(Vector3& goal,RobotSphere & robot,ros::Publisher marker_pub,ros::Publisher marker_pub2,string demand){
         double time_start2 = stopwatch();

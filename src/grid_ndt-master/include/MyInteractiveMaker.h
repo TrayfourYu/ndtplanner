@@ -11,15 +11,9 @@
 #include <visualization_msgs/InteractiveMarkerControl.h>
 #include <fstream>
 #include <map>
+#include "common_definition.h"
 typedef visualization_msgs::InteractiveMarker InteractiveMarker;
 typedef visualization_msgs::InteractiveMarkerControl InteractiveMarkerControl;
-
-struct Pose3d
-{
-    double x, y, z;
-    Pose3d()=default;
-    Pose3d(double xx, double yy, double zz):x(xx), y(yy), z(zz){};
-};
 
 class MyInteractiveMaker
 {

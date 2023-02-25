@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/home/yangt/install/include",
+                "/home/yangt/workspace/master_project/main_code/deps_ws/install/include",
+                "/home/yangt/workspace/master_project/main_code/main_ws/src/terrain_based_planning/terrain_utilis/include",
+                "/home/yangt/workspace/master_project/main_code/main_ws/src/terrain_based_planning/visual_tools/include",
+                "/usr/include",
+                "/usr/local/include",
+                "/opt/ros/kinetic/include"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/g++-7",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}

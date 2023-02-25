@@ -1,0 +1,19 @@
+{
+    "v0":0.0,
+    "ve":0.0,
+    "v_max":2.5,
+    "acc_comfort_max":3.0,
+    "acc_comfort_min":-2.0,
+    "acc_engine_max":3.5,
+    "acc_engine_min":-2.0,
+    "j_max":1.0,
+    "g":9.8,
+    "miu":0.6,
+    "b":0.3,
+    "h":0.5,
+    "rear":0.27,
+    "psi_max": 0.3,
+    "Cw":0,
+    "file_prefix":"3dpath_for_speed_planner",
+    "is_plot":true
+}
