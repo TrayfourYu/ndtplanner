@@ -14,6 +14,7 @@ class RobotSphere{
     float reachableHeight;//height that it can reach
     float reachableRough;
     float reachableAngle;
+    float start_yaw;
 public:
 //    list<Slope *> trajectory;
     //test
@@ -84,6 +85,12 @@ public:
         goal(0) = p.x;
         goal(1) = p.y;
         goal(2) = p.z;
+    }
+    void setYaw(float y){
+        start_yaw = y;
+    }
+    float getYaw(){
+        return start_yaw;
     }
 
     };

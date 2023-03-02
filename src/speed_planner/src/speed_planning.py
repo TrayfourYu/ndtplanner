@@ -17,6 +17,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from typing import List
+from itertools import chain
 import math
 font_name = "Source Han Sans CN"
 mpl.rcParams['font.family'] = font_name
@@ -103,10 +104,10 @@ def toList(path: Path, type='s'):
             l.append(state.g_t)
     elif type == 'psi':
         for state in path:
-            l.append(state.psi)
+            l.append(abs(1800 / 3.14 *state.psi))
     elif type == 'pitch':
         for state in path:
-            l.append(180.0 / 3.14 *state.pitch)
+            l.append(abs(180.0 / 3.14 *state.pitch))
     return l
 
 
@@ -196,6 +197,7 @@ def initialize(file):
     arcs = datas['s']
     kappas = datas['kappa']
     psi = datas['psi']
+    sm_psi = savgol_filter(psi, 15, 1)
     pitch = datas['theta']
     #smooth pitch
     sm_pitch = savgol_filter(pitch, 15, 1)
@@ -203,7 +205,7 @@ def initialize(file):
     size = len(arcs)
     for i in range(size):
         path.append(State(points[:, i], normals[:, i],
-                          sm_alphas[:, i], betas[:, i], kappas[i], arcs[i], psi[i], sm_pitch[i]))
+                          sm_alphas[:, i], betas[:, i], kappas[i], arcs[i], sm_psi[i], sm_pitch[i]))
         isend = False
         if IsSlope(pitch[i]):
             isend = True
@@ -584,9 +586,39 @@ if(params['is_plot']):
     # plt.title('beta')
 
     # plt.figure()
-    # plt.plot(s,  toList(path, 'n'))
+    # plt.plot(s,  toList(path, 'psi'))
     # plt.title('n')
 
+    # 3d
+    # fig2 = plt.figure()
+    # ax1 = fig2.add_subplot(111, projection="3d")
+    # x = np.arange(10, 50, 10)
+    # y = np.arange(10, 50, 10)
+    # xx, yy = np.meshgrid(x, y)
+    # plot_x, plot_y = xx.ravel(), yy.ravel()
+
+    # count = [[0]*4]*4
+    # for state in path:
+    #     roll = abs(state.psi * 180.0 / math.pi)
+    #     pitch = abs(state.pitch * 180.0 / math.pi)
+    #     index1 = math.floor(roll/10)
+    #     index2 = math.floor(pitch/10)
+    #     if index1<4 and index2<4:
+    #         count[index1][index2] = count[index1][index2] + 1
+    # rate = list(chain(*count))
+    # summ = sum(rate)
+    # rate = [100*x/summ for x in rate]
+
+    # bottom = np.zeros_like(rate)
+    # ax1.bar3d(plot_x, plot_y, bottom, 10, 10, rate, shade = True)
+    plt.figure()
+    roll, pitch = toList(path, 'psi'), toList(path, 'pitch')
+    colors = [math.sqrt(roll[i]**2 + pitch[i]**2) for i in range(len(roll))]
+    plt.scatter(pitch,roll, s=10, c=colors, cmap="summer")
+    plt.xlim(0, 35)
+    plt.ylim(0,20)
+    plt.xlabel("俯仰角 (度)")
+    plt.ylabel("侧倾角 (度)")
     plt.show()
 
 

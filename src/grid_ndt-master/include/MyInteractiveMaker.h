@@ -53,12 +53,16 @@ MyInteractiveMaker::MyInteractiveMaker(/* args */)
     std::ifstream fin;
     fin.open("/home/mr_csc/yu_ws/cache/startandgoal.csv");
     if (fin.is_open()) {
-        double tx, ty, tz;
+        double tx, ty, tz, qx, qy, qz, qw;
         std::string name;
-        while (fin >> name >> tx >> ty >> tz) {
+        while (fin >> name >> tx >> ty >> tz >> qw >> qx >> qy >> qz) {
             cached_pose_[name].position.x = tx;
             cached_pose_[name].position.y = ty;
             cached_pose_[name].position.z = tz;
+            cached_pose_[name].orientation.w = qw;
+            cached_pose_[name].orientation.x = qx;
+            cached_pose_[name].orientation.y = qy;
+            cached_pose_[name].orientation.z = qz;
         }
         printf(">>>>Debug: read %lu cached pose\n", cached_pose_.size());
     }
@@ -87,7 +91,8 @@ void MyInteractiveMaker::feedbackProcess(
     if (fout.is_open()) {
       for (const auto &it : pose_list_) {
         fout << it.first << " " << it.second.x << " "
-             << it.second.y << " " << it.second.z << "\n";
+             << it.second.y << " " << it.second.z << it.second.qw << " " << it.second.qx
+             << " " << it.second.qy << " " << it.second.qz << "\n";
       }
     }
     fout.close();
@@ -236,6 +241,7 @@ void MyInteractiveMaker::insertMarker(const std::string &name) {
 }
 
 Pose3d MyInteractiveMaker::msgToPose(const geometry_msgs::Pose &msg) {
-  return Pose3d(msg.position.x, msg.position.y, msg.position.z);
+  return Pose3d(msg.position.x, msg.position.y, msg.position.z,
+                msg.orientation.x, msg.orientation.y,msg.orientation.z,msg.orientation.w);
 }
 #endif

@@ -6,6 +6,8 @@
 #define TERRAIN_UTILIS_COMMON_DEFINITION_HPP
 
 #include<Eigen/Dense>
+#include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 
 typedef double Real;
 
@@ -24,11 +26,24 @@ typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> IdMatrixX;
 
 struct Pose3d
 {
-    double x, y, z;
+    double x, y, z, qx=0, qy=0, qz=0, qw=1;
+    double yaw_ = 0.0;
     Pose3d()=default;
-    Pose3d(double xx, double yy, double zz):x(xx), y(yy), z(zz){};
+    Pose3d(double xx, double yy, double zz, 
+           double qxx=0, double qyy=0, double qzz=0, double qww=1):x(xx), y(yy), z(zz),
+                                                                   qx(qxx), qy(qyy), qz(qzz), qw(qww){
+        this->getYaw();
+    };
     Pose3d msgToPose(const geometry_msgs::Pose &msg) {
-        return Pose3d(msg.position.x, msg.position.y, msg.position.z);
+        return Pose3d(msg.position.x, msg.position.y, msg.position.z,
+                      msg.orientation.x, msg.orientation.y,msg.orientation.z,msg.orientation.w);
+    }
+    void getYaw(){
+        tf::Quaternion rot(this->qx,this->qy,this->qz,this->qw);
+        tf::Matrix3x3 m(rot);
+        double roll, pitch, yaw;
+        m.getRPY(roll, pitch, yaw);
+        this->yaw_ = yaw;
     }
     double EuclidDis2D(const Pose3d &other) const {
         return sqrt(pow(this->x - other.x, 2)

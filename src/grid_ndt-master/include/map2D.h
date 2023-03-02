@@ -322,10 +322,10 @@ class TwoDmap {
     }
 
 
-    void countNeighbor(string leftMtn, list<Slope *> & listm,Vector3 mean, float h){
+    bool countNeighbor(string leftMtn, list<Slope *> & listm,Vector3 mean, float h){
         float min_z_diff = FLT_MAX;
         Slope * min_z_diff_slope;
-        Slope * next_up_slope;
+        Slope * next_up_slope = nullptr;
         //find the corresponding cell-mortonxy
         map<string,Cell *>::iterator mit=  map_cell.find(leftMtn);
         if(mit != map_cell.end()){
@@ -341,14 +341,21 @@ class TwoDmap {
                         sit--;
                         min_z_diff = z_diff;
                     }
+                }else{
+                    return true;
                 }
                 sit++;
             }
-            if(next_up_slope->mean(2) - min_z_diff_slope->mean(2) > h)
+            if(next_up_slope != nullptr){
+                if(next_up_slope->mean(2) - min_z_diff_slope->mean(2) > h)
+                    listm.push_back(min_z_diff_slope);
+                else
+                    listm.push_back(next_up_slope);
+            }else{
                 listm.push_back(min_z_diff_slope);
-            else
-                listm.push_back(next_up_slope);
+            }
         }
+        return false;
     }
 
     //for comparision with 3D
@@ -380,21 +387,25 @@ class TwoDmap {
     }
 
     //true-collide, false-no collide
-    bool CollisionCheck(Slope * slope,int n,RobotSphere & robot){
+    bool CollisionCheck(Slope * slope,int n, list<Slope *>& allSlope, RobotSphere & robot){
         float r =robot.getRobotR();//radius
         if(slope->up == true){
 //            cout<<"up collide\n";
             return true; //collide
         }
         //find all the surrounding neighbors
-        list<Slope *> nowSlope,addSlope,allSlope;
+        list<Slope *> nowSlope,addSlope;
         nowSlope.clear();addSlope.clear();
         allSlope.push_back(slope);
         nowSlope.push_back(slope);
         while(n>0){
             list<Slope *>::iterator itSlope = nowSlope.begin();
             while(itSlope != nowSlope.end()){
-                list<Slope *> neiSlope = AccessibleNeighbors(*itSlope,robot,2.5);
+                bool coll = false;
+                list<Slope *> neiSlope = AccessibleNeighbors(*itSlope,robot,2.5,coll);
+                if(coll){
+                    return true;
+                }    
                 list<Slope *>::iterator itN = neiSlope.begin();
                 while(itN != neiSlope.end()){
                     if(!isContainedQ(*itN,allSlope)){
@@ -485,7 +496,8 @@ class TwoDmap {
         while(n>0){
             list<Slope *>::iterator itSlope = nowSlope.begin();
             while(itSlope != nowSlope.end()){
-                list<Slope *> neiSlope = AccessibleNeighbors(*itSlope,robot,3);//3d
+                bool coll;
+                list<Slope *> neiSlope = AccessibleNeighbors(*itSlope,robot,3,coll);//3d
                 list<Slope *>::iterator itN = neiSlope.begin();
                 while(itN != neiSlope.end()){
                     if(!isContainedQ(*itN,allSlope)){
@@ -596,7 +608,7 @@ public:
   }
 
   //for common use /collisionCheck use
-  list<Slope *>  AccessibleNeighbors(Slope * slope,RobotSphere & robot,float comand){
+  list<Slope *>  AccessibleNeighbors(Slope * slope,RobotSphere & robot,float comand, bool& coll){
 //         cout<<"access slope: "<<slope->morton_xy<<","<<slope->morton_z<<endl;
       list<Slope *> list;
       string morton_xy = slope->morton_xy;
@@ -612,11 +624,16 @@ public:
       //在countReachable对四个方位临近的单元进行了可到达的检测，可到达的加入到list当中
       //collision check过程中对list中所有元素再进行检测，有冗余
       //这里应该不进行检测，将四个方位所有单元上的slope全部加入list
+      coll = false;
       float h = robot.getReachableHeight();
-      countNeighbor(leftMtn,list,mean,h);
-      countNeighbor(rightMtn,list,mean,h);
-      countNeighbor(forMtn,list,mean,h);
-      countNeighbor(backMtn,list,mean,h);
+      if(countNeighbor(leftMtn,list,mean,h))
+        coll = true;
+      if(countNeighbor(rightMtn,list,mean,h))
+        coll = true;
+      if(countNeighbor(forMtn,list,mean,h))
+        coll = true;
+      if(countNeighbor(backMtn,list,mean,h))
+        coll = true;
       return list;
   }
 
@@ -1477,7 +1494,7 @@ public:
 
         float min_z_diff = FLT_MAX;
         Slope * min_z_diff_slope;
-        Slope * next_up_slope;
+        Slope * next_up_slope = nullptr;
         //find the corresponding cell-mortonxy
         map<string,Cell *>::iterator mit=  map_cell.find(morton_xy);
         if(mit != map_cell.end()){
@@ -1496,12 +1513,16 @@ public:
                 }
                 sit++;
             }
-            if(next_up_slope->mean(2) - min_z_diff_slope->mean(2) > h)
+            if(next_up_slope != nullptr){
+                if(next_up_slope->mean(2) - min_z_diff_slope->mean(2) > h)
+                    return min_z_diff_slope;
+                else
+                    return next_up_slope;
+            }else{
                 return min_z_diff_slope;
-            else
-                return next_up_slope;
+            }
         }else{
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -1517,10 +1538,10 @@ public:
                 return ss->second;
             }
             else{
-                return NULL;
+                return nullptr;
             }
         }else{
-            return NULL;
+            return nullptr;
         }
 
     }
@@ -1535,7 +1556,8 @@ public:
         while(n>0){
             list<Slope *>::iterator itSlope = nowSlope.begin();
             while(itSlope != nowSlope.end()){
-                list<Slope *> neiSlope = AccessibleNeighbors(*itSlope,robot,2.5);
+                bool tmp;
+                list<Slope *> neiSlope = AccessibleNeighbors(*itSlope,robot,2.5,tmp);
                 list<Slope *>::iterator itN = neiSlope.begin();
                 while(itN != neiSlope.end()){
                     if(!isContainedQ(*itN,allSlope)){
@@ -1555,6 +1577,11 @@ public:
         int count = 0;
         list<Slope *>::iterator itSlope = allSlope.begin();
         while(itSlope != allSlope.end()){
+            Vector3f nor(0.0, 0.0, 1.0);
+            if(countAngle(nor, (*itSlope)->normal) > 30.0) {
+                itSlope++;
+                continue;
+            }
             count++;
             normal = normal + (*itSlope)->normal;
             itSlope++;
@@ -1602,9 +1629,10 @@ public:
          //compute the surrounding morton code
          if(demand.compare("slope") == 0){             
              while(Q.size() != 0){
-                 if(!CollisionCheck(Q.front(),n,robot )){
+                 list<Slope *> neiSlope;
+                 if(!CollisionCheck(Q.front(),n,neiSlope,robot )){
                      //no collision
-                     list<Slope *> neiSlope = AccessibleNeighbors(Q.front(),robot,checkList);                     
+                    //  list<Slope *> neiSlope = AccessibleNeighbors(Q.front(),robot,checkList);                     
                      list<Slope *>::iterator itN = neiSlope.begin();
                      while(itN != neiSlope.end()){
                          if((*itN)->up == true){
@@ -1680,15 +1708,15 @@ public:
          double time_end2 = stopwatch();
          cout<<"traversability time: "<<(time_end2-time_start2)<<" s\n";
          cout<<"traversability slopes "<<traversability.size()<<endl;
-         cout<<"check slopes "<<checkList.size()<<endl;
+        //  cout<<"check slopes "<<checkList.size()<<endl;
          if(marker_pub.getNumSubscribers() ){
              showSlopeList(marker_pub,traversability,0);
              cout<<"costmap show done\n";
          }
-         if(marker_pub2.getNumSubscribers() ){
-             showSlopeList(marker_pub2,checkList,1);
-             cout<<"check slope/node show done\n";
-         }
+        //  if(marker_pub2.getNumSubscribers() ){
+        //      showSlopeList(marker_pub2,checkList,1);
+        //      cout<<"check slope/node show done\n";
+        //  }
     }
 
 };

@@ -152,6 +152,7 @@ void solve(const string& filename)
     
     robot.setPos(StartAndGoal.startPose());
     robot.setGoal(StartAndGoal.goalPose());
+    robot.setYaw(StartAndGoal.startPose().yaw_);
     cout<<">>>>>Get the start and goal."<<endl;
 
     Vector3 goal(robot.getGoal());
@@ -197,10 +198,12 @@ int main(int argc, char **argv)
   ros::param::get("~primitive_num",planner_config.primitive_num);
   ros::param::get("~rip_num",planner_config.rip_num);
   ros::param::get("~step_width",planner_config.step_width);
+  ros::param::get("~step_min",planner_config.step_min);
   ros::param::get("~goal_radius",planner_config.goal_radius);
   ros::param::get("~is_ramp_angle",planner_config.is_ramp_angle);
-  float tmp_step = planner_config.step_width / 5.0;
-  planner_config.step_min = std::max(tmp_step, resolution);
+  ros::param::get("~ramp_steer_num",planner_config.ramp_steer_num);
+//   float tmp_step = planner_config.step_width / 5.0;
+//   planner_config.step_min = std::max(tmp_step, resolution);
 
   //robot.setPos(pos);
   //robot.setGoal(goal);

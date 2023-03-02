@@ -43,6 +43,8 @@ class AstarPlanar{
     float isRampAngle;
     double goal_radius;
     double descretized_angle;
+    int ramp_steer_num;
+    float start_yaw;
     std::vector<std::vector<NodeUpdate>> state_update_table_;
 
     void createStateUpdateTable(){
@@ -163,6 +165,7 @@ public:
         descretized_angle = 2.0 * M_PI / angle_size;
         goal_radius = planner_config.goal_radius;
         step_min = planner_config.step_min;
+        ramp_steer_num = planner_config.ramp_steer_num;
         createStateUpdateTable();
     }
 
@@ -179,6 +182,11 @@ public:
             return false;
         }
         start(2) = start_z;
+        start_yaw = robot.getYaw();
+        if (start_yaw < 0)
+            start_yaw += 2 * M_PI;
+        int index_theta = start_yaw / descretized_angle;
+        index_theta %= angle_size;
         map2D.transMortonZ(start_z, morton_z);
         map<string,Cell *>::iterator it = map2D.map_cell.find(morton_xy);
         float gridLen = map2D.getGridLen(); //resolution
@@ -191,12 +199,11 @@ public:
                 // ss->second->g = 0; //start
                 // ss->second->f = ss->second->g + ss->second->h;
                 // ss->second->status = STATUS::CLOSED;
-
-                SimpleSlope start_slope(start, 0, ss->second->f, 0, STATUS::OPEN);
+                SimpleSlope start_slope(start, index_theta, ss->second->f, 0, STATUS::OPEN);
                 start_slope.morton_xy = morton_xy;
                 start_slope.morton_z = morton_z;
                 open_queue.emplace(start_slope);
-                visited[morton_xy][morton_z][0] = start_slope;
+                visited[morton_xy][morton_z][index_theta] = start_slope;
                 //开始搜索
                 //cout<<">>>>>Begin Search<<<<<"<<endl;
                 int search_count = 0;
@@ -242,7 +249,7 @@ public:
                    
                     // for each update
                     for(const auto &state : state_update_table_[cur_theta]){
-                        if(isRamp && abs(state.rotation) >= descretized_angle) continue;
+                        if(isRamp && abs(state.rotation) > ramp_steer_num * descretized_angle) continue;
                         // Next state
                         float next_x     = cur_x + state.shift_x;
                         float next_y     = cur_y + state.shift_y;
@@ -423,7 +430,6 @@ public:
                 delta_t = (-2 * M_PI + fabs(delta_t)) * delta_t / fabs(delta_t);
                 // -pi < delta_t < pia
             double delta_s = std::hypot(x2 - x1, y2 - y1);
-
             // straight line case
             if (delta_t == 0) {
                 // calculate how many points need to be inserted by step
@@ -479,12 +485,13 @@ public:
                 }
             }
         }
+        cout<<"sample Path done\n";
         savingForSpeed(toStatePath(),map2D, robot);
     }
 
     void InsertOrien(TwoDmap & map2D, RobotSphere & robot, geometry_msgs::PoseStamped& ros_pose, const double& heading){
         Slope* tmp = map2D.GetSlopeFromXYZ(ros_pose.pose.position.x, ros_pose.pose.position.y,ros_pose.pose.position.z);
-        if(tmp == NULL){
+        if(tmp == nullptr){
             tf::Quaternion rot(dense_path_.poses.back().pose.orientation.x, dense_path_.poses.back().pose.orientation.y,dense_path_.poses.back().pose.orientation.z, dense_path_.poses.back().pose.orientation.w);
             tf::Matrix3x3 m(rot);
             double roll, pitch, yaw;
@@ -527,6 +534,7 @@ public:
             // state.n = Point3(normal.x(), normal.y(), normal.z());
             path.emplace_back(state);
         }
+        cout<<"convert to StatePath done\n";
         return path;
     }
 
@@ -541,6 +549,7 @@ public:
         curve.setControlPoints(ctrlp);
         auto dcurve = curve.derive();
         auto ddcurve = dcurve.derive();
+        cout<<"BSspline done\n";
         size_t size = 1e4;
         double du = 1.0 / static_cast<double>(size);
         std::vector<State> path;
@@ -562,7 +571,6 @@ public:
                 double vel = dr.norm();
                 //alpha
                 state.alpha = dr / vel;
-
                 Mat<3> proj = state.alpha * state.alpha.transpose();
                 proj = Mat<3>::Identity() - proj;
                 auto kn = proj * ddr / vel / vel;
@@ -576,11 +584,10 @@ public:
                 } else {
                     state.s = 0;
                 }
-
                 //n
                 Slope * tmp = map2D.findNearstSlope(state.pose.x, state.pose.y, state.pose.z, 
                                                     robot.getReachableHeight());
-                if(tmp != NULL){
+                if(tmp != nullptr){
                     Vector3f normal = map2D.GetGroundNormal(tmp, robot);
                     state.n = Point3(normal(0),normal(1), normal(2));
                 }else{
@@ -596,7 +603,6 @@ public:
                 tf::Matrix3x3 m(rot);
                 double roll, pitch, yaw;
                 m.getRPY(roll, pitch, yaw);
-
                 state.euler_angle = Vector<3>(yaw, pitch, roll);
                 path.emplace_back(state);
                 count++;
