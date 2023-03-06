@@ -104,7 +104,7 @@ def toList(path: Path, type='s'):
             l.append(state.g_t)
     elif type == 'psi':
         for state in path:
-            l.append(abs(1800 / 3.14 *state.psi))
+            l.append(abs(180.0 / 3.14 *state.psi))
     elif type == 'pitch':
         for state in path:
             l.append(abs(180.0 / 3.14 *state.pitch))
@@ -178,7 +178,7 @@ def getAcceleration(v, s):
     return a
 
 def IsSlope(pitch):
-    slope = 5.0 / 180.0 * math.pi
+    slope = 6.0 / 180.0 * math.pi
     if pitch < slope and pitch > -slope:
         return False
     else:
@@ -207,12 +207,13 @@ def initialize(file):
         path.append(State(points[:, i], normals[:, i],
                           sm_alphas[:, i], betas[:, i], kappas[i], arcs[i], sm_psi[i], sm_pitch[i]))
         isend = False
-        if IsSlope(pitch[i]):
+        if not IsSlope(pitch[i]):
             isend = True
-            for j in range(1,6):
+            for j in range(1,4):
                 if not IsSlope(pitch[max(0,i - j)]):
                     isend = False
                     break
+            for j in range(1,3):
                 if IsSlope(pitch[min(size-1, i + j)]):
                     isend = False
                     break   
@@ -367,6 +368,7 @@ def velProfileFromSlidingLimit(path: Path, params):
                 'unstable surface----- no aviliable speed section!')
         if i > 0 and V_upper[i] - V_upper[i-1] > 1:
             V_upper[i] = V_upper[i-1] + 2
+        V_upper[i] = min(V_upper[i], params['v_max'])
 
     return {'upper': V_upper, 'lower': V_lower}
 
@@ -585,9 +587,9 @@ if(params['is_plot']):
     # plt.plot(s,  toList(path, 'beta'))
     # plt.title('beta')
 
-    # plt.figure()
-    # plt.plot(s,  toList(path, 'psi'))
-    # plt.title('n')
+    plt.figure()
+    plt.plot(s,  toList(path, 'pitch'))
+    plt.title('pitch')
 
     # 3d
     # fig2 = plt.figure()

@@ -182,15 +182,23 @@ public:
             return false;
         }
         start(2) = start_z;
+        cout<<"start z is "<<start_z<<endl;
         start_yaw = robot.getYaw();
         if (start_yaw < 0)
             start_yaw += 2 * M_PI;
         int index_theta = start_yaw / descretized_angle;
         index_theta %= angle_size;
         map2D.transMortonZ(start_z, morton_z);
+        cout<<"start z is "<<morton_z<<endl;
         map<string,Cell *>::iterator it = map2D.map_cell.find(morton_xy);
         float gridLen = map2D.getGridLen(); //resolution
         float zLen = map2D.getZLen(); //z-resolution
+
+        map<int,Slope *,CmpByKeyUD>::iterator tmpss = (it->second)->map_slope.begin();
+        while(tmpss != (it->second)->map_slope.end()){
+            cout<<"motorn z is "<<(tmpss->second)->morton_z<<endl;
+            tmpss++;
+        }
 
         if(it != map2D.map_cell.end()){
             map<int,Slope *,CmpByKeyUD>::iterator ss = (it->second)->map_slope.find(morton_z);
@@ -249,14 +257,14 @@ public:
                    
                     // for each update
                     for(const auto &state : state_update_table_[cur_theta]){
-                        if(isRamp && abs(state.rotation) > ramp_steer_num * descretized_angle) continue;
+                        if(isRamp && abs(state.rotation) >= ramp_steer_num * descretized_angle) continue;
                         // Next state
                         float next_x     = cur_x + state.shift_x;
                         float next_y     = cur_y + state.shift_y;
                         int next_theta = cur_theta + state.index_theta;
                         // Avoid invalid index
                         next_theta = (next_theta + angle_size) % angle_size;
-                        float steer_cost  = state.step * state.curve;
+                        float steer_cost  = curve_weight * state.step * state.curve;
 
                         string next_morton_xy;
                         Vector3 next_pos(next_x, next_y, 0);

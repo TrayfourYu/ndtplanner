@@ -283,11 +283,13 @@ class TwoDmap {
                     }
                 }else if(comand ==2.5){
                   if(sit->second->up != true){
-                      if((sit->second)->rough <= robot.getRough())
-                          if(countAngle((sit->second)->normal,normal) <= robot.getAngle()){
-                              if(abs((sit->second)->mean(2) - mean(2) )<= robot.getReachableHeight())//use mean to compute
-                                  listm.push_back(sit->second);
-                          }
+                    if((sit->second)->rough <= robot.getRough()){
+                        float delta_l = sqrt(pow((sit->second)->mean(0) - mean(0),2)+pow((sit->second)->mean(1) - mean(1),2));
+                        float delta_tan_theta = abs((sit->second)->mean(2) - mean(2)) / delta_l;
+                        if(delta_tan_theta <= tanf(M_PI / 180.0 *robot.getAngle())){
+                            listm.push_back(sit->second);
+                        }
+                    }
                   }
                 }else if(comand ==3){
                     listm.push_back(sit->second);
@@ -324,7 +326,7 @@ class TwoDmap {
 
     bool countNeighbor(string leftMtn, list<Slope *> & listm,Vector3 mean, float h){
         float min_z_diff = FLT_MAX;
-        Slope * min_z_diff_slope;
+        Slope * min_z_diff_slope = nullptr;
         Slope * next_up_slope = nullptr;
         //find the corresponding cell-mortonxy
         map<string,Cell *>::iterator mit=  map_cell.find(leftMtn);
@@ -342,17 +344,23 @@ class TwoDmap {
                         min_z_diff = z_diff;
                     }
                 }else{
+                    cout<<"up collison"<<"\n";
                     return true;
                 }
                 sit++;
             }
             if(next_up_slope != nullptr){
-                if(next_up_slope->mean(2) - min_z_diff_slope->mean(2) > h)
+                if(next_up_slope->mean(2) - min_z_diff_slope->mean(2) > h){
+                    // if( abs(min_z_diff_slope->mean(2) - mean(2)) < 2.0)
+                        listm.push_back(min_z_diff_slope);
+                }
+                else{
+                    // if( abs(next_up_slope->mean(2) - mean(2)) < 2.0)
+                        listm.push_back(next_up_slope);
+                }
+            }else if(min_z_diff_slope != nullptr){
+                // if( abs(min_z_diff_slope->mean(2) - mean(2)) < 2.0)
                     listm.push_back(min_z_diff_slope);
-                else
-                    listm.push_back(next_up_slope);
-            }else{
-                listm.push_back(min_z_diff_slope);
             }
         }
         return false;
@@ -404,6 +412,7 @@ class TwoDmap {
                 bool coll = false;
                 list<Slope *> neiSlope = AccessibleNeighbors(*itSlope,robot,2.5,coll);
                 if(coll){
+                    cout<<"up collison 1"<<"\n";
                     return true;
                 }    
                 list<Slope *>::iterator itN = neiSlope.begin();
@@ -437,21 +446,28 @@ class TwoDmap {
             // if(((*itSlope)->mean(2) < slope->mean(2)) && slope->mean(2) - (*itSlope)->mean(2) > robot.getReachableHeight()){//yu update
             //     return true;//collide
             // }
-            if((*itSlope)->status == STATUS::OBS)
+            if((*itSlope)->status == STATUS::OBS){
+                cout<<"up collison 2"<<"\n";
                 return true;
+            }
 
             // if(abs((*itSlope)->mean(2) - slope->mean(2) ) > robot.getReachableHeight())
             //     return true;
             
-            if((*itSlope)->rough > robot.getRough())
+            if((*itSlope)->rough > robot.getRough()){
+                cout<<"up collison 3"<<"\n";
                 return true;
+            }
 
             float delta_l = sqrt(pow((*itSlope)->mean(0) - slope->mean(0), 2)
                             + pow((*itSlope)->mean(1) - slope->mean(1), 2));
             float delta_z = sqrt(pow((*itSlope)->mean(2) - slope->mean(2), 2));
             float delta_theta = delta_z/delta_l;
-            if(delta_theta > tanf(M_PI / 180.0 * robot.getAngle()))
+            if(delta_theta > tanf(M_PI / 180.0 * robot.getAngle())){
+                cout<<"up collison 4"<<"\n";
+                cout<<"deltal is "<<delta_l<<" , deltaz is "<<delta_z<<" delta_theta is "<<delta_theta<<endl;
                 return true;
+            }
             // Vector3f z_normal(0,0,1);
             // if(countAngle((*itSlope)->normal,z_normal) > robot.getAngle())
             //     return true;
@@ -470,6 +486,7 @@ class TwoDmap {
                 if(ss != (it->second)->map_slope.end()){
                     if(((ss->second)->mean(2) < (slope->mean(2) + r))){
                         slope->status = STATUS::OBS;
+                        cout<<"up collison 5"<<"\n";
                         return true;//collide
                     }
                     else
@@ -1465,7 +1482,7 @@ public:
 
     bool getZneast(const string& Mtn, const float& z,float& nearst_z){
         float min_z_diff = FLT_MAX;
-        Slope * min_z_diff_slope;
+        Slope * min_z_diff_slope = nullptr;
         //find the corresponding cell-mortonxy
         map<string,Cell *>::iterator mit=  map_cell.find(Mtn);
         if(mit != map_cell.end()){
@@ -1480,8 +1497,12 @@ public:
                 }
                 sit++;
             }
-            nearst_z = min_z_diff_slope->mean(2);
-            return true;
+            if(min_z_diff_slope != nullptr){
+                nearst_z = min_z_diff_slope->mean(2);
+                return true;
+            }else{
+                return false;
+            }
         }
         return false;
     }
@@ -1493,7 +1514,7 @@ public:
         transMortonXY(pos, morton_xy);
 
         float min_z_diff = FLT_MAX;
-        Slope * min_z_diff_slope;
+        Slope * min_z_diff_slope = nullptr;
         Slope * next_up_slope = nullptr;
         //find the corresponding cell-mortonxy
         map<string,Cell *>::iterator mit=  map_cell.find(morton_xy);
@@ -1514,13 +1535,27 @@ public:
                 sit++;
             }
             if(next_up_slope != nullptr){
-                if(next_up_slope->mean(2) - min_z_diff_slope->mean(2) > h)
+                if(next_up_slope->mean(2) - min_z_diff_slope->mean(2) > h){
+                    // if( abs(min_z_diff_slope->mean(2) - z) < 2.0)
+                        return min_z_diff_slope;
+                    // else 
+                    //     return nullptr;
+                }else{
+                    // if( abs(next_up_slope->mean(2) - z) < 2.0)
+                        return next_up_slope;
+                    // else
+                    //     return nullptr;
+                }
+            }else if(min_z_diff_slope != nullptr){
+                // if( abs(min_z_diff_slope->mean(2) - z) < 2.0)
                     return min_z_diff_slope;
-                else
-                    return next_up_slope;
-            }else{
-                return min_z_diff_slope;
+                // else
+                //     return nullptr;
+            }else
+            {
+                return nullptr;
             }
+            
         }else{
             return nullptr;
         }
@@ -1625,15 +1660,23 @@ public:
 
          int n = (ceil(2*robot.getRobotR()/gridLen)-1)/2; //ceil-compute more
 //         cout<<"n "<<n<<endl;
-
+        cout<<"get n\n";
          //compute the surrounding morton code
          if(demand.compare("slope") == 0){             
              while(Q.size() != 0){
                  list<Slope *> neiSlope;
+                 cout<<"get collison...\n";
                  if(!CollisionCheck(Q.front(),n,neiSlope,robot )){
+                    cout<<"collison done\n";
+                    // if(neiSlope.empty()) {
+                    //     Q.pop_front();
+                    //     continue;
+                    // }
                      //no collision
-                    //  list<Slope *> neiSlope = AccessibleNeighbors(Q.front(),robot,checkList);                     
+                    //  list<Slope *> neiSlope = AccessibleNeighbors(Q.front(),robot,checkList);  
+                     cout<<"propegation...\n";                   
                      list<Slope *>::iterator itN = neiSlope.begin();
+                     cout<<"find goal\n";
                      while(itN != neiSlope.end()){
                          if((*itN)->up == true){
                              (*itN)->h = FLT_MAX;

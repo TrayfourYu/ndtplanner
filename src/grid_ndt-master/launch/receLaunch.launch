@@ -10,20 +10,21 @@ output="screen"
 <param name="resolution" type="double" value="0.1" />
 <param name="slope_interval" type="double" value="0.0" />
 <param name="z_resolution" type="double" value="0.05" />
-<param name="RobotRange" type="double" value="0.35" />
+<param name="RobotRange" type="double" value="0.45" />
 <param name="reachableHeight" type="double" value="0.2" />
-<param name="reachableRough" type="double" value="0.1" />
+<param name="reachableRough" type="double" value="100" />
 <param name="reachableAngle" type="double" value="35.0" />
-<param name="is_ramp_angle" type="double" value="18.0" />
+<param name="is_ramp_angle" type="double" value="10.0" />
+<param name="path_res" type="double" value="0.02" />
 
 <param name="angle_size" type="int" value="48" />
 <param name="curve_weight" type="double" value="1.3" />
-<param name="h_weight" type="double" value="2.0" />
+<param name="h_weight" type="double" value="1.0" />
 <param name="getup_weight" type="double" value="1.3" />
 <param name="primitive_num" type="int" value="15" />
-<param name="ramp_steer_num" type="int" value="7" />
+<param name="ramp_steer_num" type="int" value="1" />
 <param name="rip_num" type="int" value="15" />
-<param name="step_width" type="double" value="0.6" />
+<param name="step_width" type="double" value="0.35" />
 <param name="step_min" type="double" value="0.3" />
 <param name="goal_radius" type="double" value="0.5" />
 </node>
@@ -35,3 +36,50 @@ type="rviz"
 args="-d $(find grid_ndt)/launch/freiburg_23tri.rviz" output="log"
 />
 </launch>
+
+<!-- <param name="demand" type="string" value="slope" />
+<param name="filename" type="string" value="building.pcd" />
+<param name="resolution" type="double" value="0.2" />
+<param name="slope_interval" type="double" value="0.0" />
+<param name="z_resolution" type="double" value="0.25" />
+<param name="RobotRange" type="double" value="0.6" />
+<param name="reachableHeight" type="double" value="0.2" />
+<param name="reachableRough" type="double" value="100" />
+<param name="reachableAngle" type="double" value="35.0" />
+<param name="is_ramp_angle" type="double" value="10.0" />
+<param name="path_res" type="double" value="0.02" />
+
+<param name="angle_size" type="int" value="60" />
+<param name="curve_weight" type="double" value="1.3" />
+<param name="h_weight" type="double" value="0.8" />
+<param name="getup_weight" type="double" value="1.3" />
+<param name="primitive_num" type="int" value="15" />
+<param name="ramp_steer_num" type="int" value="1" />
+<param name="rip_num" type="int" value="15" />
+<param name="step_width" type="double" value="0.6" />
+<param name="step_min" type="double" value="0.5" />
+<param name="goal_radius" type="double" value="0.5" /> -->
+
+<!-- <param name="demand" type="string" value="slope" />
+<param name="filename" type="string" value="stairs.pcd" />
+<param name="resolution" type="double" value="0.1" />
+<param name="slope_interval" type="double" value="0.0" />
+<param name="z_resolution" type="double" value="0.05" />
+<param name="RobotRange" type="double" value="0.45" />
+<param name="reachableHeight" type="double" value="0.2" />
+<param name="reachableRough" type="double" value="100" />
+<param name="reachableAngle" type="double" value="35.0" />
+<param name="is_ramp_angle" type="double" value="10.0" />
+<param name="path_res" type="double" value="0.02" />
+
+<param name="angle_size" type="int" value="48" />
+<param name="curve_weight" type="double" value="1.3" />
+<param name="h_weight" type="double" value="1.0" />
+<param name="getup_weight" type="double" value="1.3" />
+<param name="primitive_num" type="int" value="15" />
+<param name="ramp_steer_num" type="int" value="1" />
+<param name="rip_num" type="int" value="15" />
+<param name="step_width" type="double" value="0.35" />
+<param name="step_min" type="double" value="0.3" />
+<param name="goal_radius" type="double" value="0.5" />
+</node> -->

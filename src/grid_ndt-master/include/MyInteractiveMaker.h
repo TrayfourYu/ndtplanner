@@ -71,7 +71,7 @@ MyInteractiveMaker::MyInteractiveMaker(/* args */)
 void MyInteractiveMaker::initInteractiveMarker(const std::string &topic) {
   server_.reset(
       new interactive_markers::InteractiveMarkerServer(topic, "", false));
-  makeButtonMarker(tf::Vector3(10, 10, 0));
+  makeButtonMarker(tf::Vector3(10, 10, -1));
   insertMarker("start_pose");
   insertMarker("goal_pose");
   applyChange();

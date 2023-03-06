@@ -37,6 +37,7 @@ daysun::TwoDmap map2D(0.5,0.1);
 MyInteractiveMaker StartAndGoal{};
 ros::Publisher marker_pub,change_pub,markerArray_pub,markerArray_pub2,marker_pub_bo,route_pub,dense_path_pub/*,del_pub*/;
 string demand;
+double path_res;
 Config planner_config;
 
 //ofstream outfile("/home/daysun/testPointsSys.txt", ofstream::app);
@@ -162,7 +163,7 @@ void solve(const string& filename)
     if(globalPlanr.findRoute(map2D,robot,demand) && route_pub.getNumSubscribers()){
         globalPlanr.showRoute(map2D,route_pub);
         if(dense_path_pub.getNumSubscribers()){
-            globalPlanr.samplePathByStepLength(0.1,map2D,robot);
+            globalPlanr.samplePathByStepLength(path_res,map2D,robot);
             globalPlanr.showDensePath(dense_path_pub);
         }
     }
@@ -190,6 +191,7 @@ int main(int argc, char **argv)
   ros::param::get("~resolution",resolution);
   ros::param::get("~z_resolution",z_resolution);
   ros::param::get("~slope_interval",slope_interval);
+  ros::param::get("~path_res",path_res);
 
   ros::param::get("~angle_size",planner_config.angle_size);
   ros::param::get("~curve_weight",planner_config.curve_weight);
