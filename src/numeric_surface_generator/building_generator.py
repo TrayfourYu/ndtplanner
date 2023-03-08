@@ -126,7 +126,43 @@ x = x + [i-2.4 for i in x3]
 y = y + [i-21 for i in y3]
 z = z + z3
 
+x3, y3, z3 = getRect(0.2,20)
+n_x = len(x3)
+n_y = len(y3)
 
+wall_h = 1
+n_h = int(wall_h/res)
+z4 = []
+for i in range(n_h):
+    tmp = [i*res]
+    z4 = z4 + tmp*n_x
+
+x4 = [-i for i in y3]*n_h
+y4 = [i for i in x3]*n_h
+
+x = x + x4
+y = y + y4
+z = z + z4
+
+x3, y3, z3 = getRect(0.1,1.2)
+n_x = len(x3)
+n_y = len(y3)
+
+door_h = 1
+n_h = int(door_h/res)
+z4 = []
+for i in range(n_h):
+    tmp = [i*res + 6*n*h]
+    z4 = z4 + tmp*n_x
+
+x4 = [i-1.2 for i in x3]*n_h
+y4 = [i-5 for i in y3]*n_h
+
+x = x + x4
+y = y + y4
+z = z + z4
+
+z = [i+1 for i in z]
 
 
 # if params['with_obs']:
@@ -155,9 +191,9 @@ z = z + z3
 df = pd.DataFrame({'x': x, 'y': y, 'z': z})
 file_name = ''
 if params['with_obs']:
-    file_name = params['file_prefix']+'bulding.csv'
+    file_name = params['file_prefix']+'1/building.csv'
 else:
-    file_name = params['file_prefix']+'bulding_with_obs.csv'
+    file_name = params['file_prefix']+'1/building_with_obs.csv'
 pass
 df.to_csv(file_name, index=False, sep=',')
 v = pptk.viewer(df)

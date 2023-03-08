@@ -289,6 +289,8 @@ class TwoDmap {
                         if(delta_tan_theta <= tanf(M_PI / 180.0 *robot.getAngle())){
                             listm.push_back(sit->second);
                         }
+                        // if(abs((sit->second)->mean(2) - mean(2) )<= robot.getReachableHeight())//use mean to compute
+                        //     listm.push_back(sit->second);
                     }
                   }
                 }else if(comand ==3){
@@ -412,7 +414,6 @@ class TwoDmap {
                 bool coll = false;
                 list<Slope *> neiSlope = AccessibleNeighbors(*itSlope,robot,2.5,coll);
                 if(coll){
-                    cout<<"up collison 1"<<"\n";
                     return true;
                 }    
                 list<Slope *>::iterator itN = neiSlope.begin();
@@ -447,7 +448,6 @@ class TwoDmap {
             //     return true;//collide
             // }
             if((*itSlope)->status == STATUS::OBS){
-                cout<<"up collison 2"<<"\n";
                 return true;
             }
 
@@ -455,7 +455,6 @@ class TwoDmap {
             //     return true;
             
             if((*itSlope)->rough > robot.getRough()){
-                cout<<"up collison 3"<<"\n";
                 return true;
             }
 
@@ -464,8 +463,6 @@ class TwoDmap {
             float delta_z = sqrt(pow((*itSlope)->mean(2) - slope->mean(2), 2));
             float delta_theta = delta_z/delta_l;
             if(delta_theta > tanf(M_PI / 180.0 * robot.getAngle())){
-                cout<<"up collison 4"<<"\n";
-                cout<<"deltal is "<<delta_l<<" , deltaz is "<<delta_z<<" delta_theta is "<<delta_theta<<endl;
                 return true;
             }
             // Vector3f z_normal(0,0,1);
@@ -486,7 +483,6 @@ class TwoDmap {
                 if(ss != (it->second)->map_slope.end()){
                     if(((ss->second)->mean(2) < (slope->mean(2) + r))){
                         slope->status = STATUS::OBS;
-                        cout<<"up collison 5"<<"\n";
                         return true;//collide
                     }
                     else
@@ -1660,23 +1656,18 @@ public:
 
          int n = (ceil(2*robot.getRobotR()/gridLen)-1)/2; //ceil-compute more
 //         cout<<"n "<<n<<endl;
-        cout<<"get n\n";
          //compute the surrounding morton code
          if(demand.compare("slope") == 0){             
              while(Q.size() != 0){
                  list<Slope *> neiSlope;
-                 cout<<"get collison...\n";
                  if(!CollisionCheck(Q.front(),n,neiSlope,robot )){
-                    cout<<"collison done\n";
                     // if(neiSlope.empty()) {
                     //     Q.pop_front();
                     //     continue;
                     // }
                      //no collision
-                    //  list<Slope *> neiSlope = AccessibleNeighbors(Q.front(),robot,checkList);  
-                     cout<<"propegation...\n";                   
+                    //  list<Slope *> neiSlope = AccessibleNeighbors(Q.front(),robot,checkList);                   
                      list<Slope *>::iterator itN = neiSlope.begin();
-                     cout<<"find goal\n";
                      while(itN != neiSlope.end()){
                          if((*itN)->up == true){
                              (*itN)->h = FLT_MAX;

@@ -523,6 +523,16 @@ data_path = basic_dir + '/../../../cache/'
 path_file = params['file_prefix']+'.csv'
 path = initialize(data_path+path_file)
 
+plt.figure()
+roll, pitch = toList(path, 'psi'), toList(path, 'pitch')
+colors = [math.sqrt(roll[i]**2 + pitch[i]**2) for i in range(len(roll))]
+plt.scatter(pitch,roll, s=10, c=colors, cmap="summer")
+plt.xlim(0,10)
+plt.ylim(0,10)
+plt.xlabel("俯仰角 (度)")
+plt.ylabel("侧倾角 (度)")
+plt.show()
+
 #vel_contact = velProfileFromcontactLimit(path, params)
 vel_slide = velProfileFromSlidingLimit(path, params)
 vel_stairsend = velProfileFromStairsEndLimit(path, params)
@@ -613,15 +623,7 @@ if(params['is_plot']):
 
     # bottom = np.zeros_like(rate)
     # ax1.bar3d(plot_x, plot_y, bottom, 10, 10, rate, shade = True)
-    plt.figure()
-    roll, pitch = toList(path, 'psi'), toList(path, 'pitch')
-    colors = [math.sqrt(roll[i]**2 + pitch[i]**2) for i in range(len(roll))]
-    plt.scatter(pitch,roll, s=10, c=colors, cmap="summer")
-    plt.xlim(0, 35)
-    plt.ylim(0,20)
-    plt.xlabel("俯仰角 (度)")
-    plt.ylabel("侧倾角 (度)")
-    plt.show()
+
 
 
 # save data in file:

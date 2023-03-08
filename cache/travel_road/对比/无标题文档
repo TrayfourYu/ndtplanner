@@ -1,0 +1,25 @@
+Loaded 187368 points
+187368
+set first end
+division time: 1.037 s
+grid length 0.1, morton size: 3215
+calculate time: 0.723047 s
+node 0, slope 3195
+initial show done
+>>>>>Waiting for the start and goal...
+>>>>>Get the start and goal.
+find goal
+traversability time: 2.21739 s
+traversability slopes 3195
+costmap show done
+start z is 0.1
+motorn z is -1
+found the route to goal
+-------Search Count Is 2295-------
+Global planr done. A*: 0.07794 s
+route show done
+sample Path done
+convert to StatePath done
+BSspline done
+>>>> input 86 pose, after fitting get 165 points
+

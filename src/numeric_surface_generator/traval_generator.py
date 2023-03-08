@@ -143,6 +143,8 @@ x = x + x2
 y = y + y2
 z = z + z4
 
+z = [i+0.1 for i in z]
+
 # if params['with_obs']:
 #     obs_x, obs_y, obs_z = addSingleCylinderObs(4, 2*np.pi/3, 1, 1, 3)
 #     x = x + obs_x
@@ -169,9 +171,9 @@ z = z + z4
 df = pd.DataFrame({'x': x, 'y': y, 'z': z})
 file_name = ''
 if params['with_obs']:
-    file_name = params['file_prefix']+'travel.csv'
+    file_name = params['file_prefix']+'1/travel.csv'
 else:
-    file_name = params['file_prefix']+'travel_with_obs.csv'
+    file_name = params['file_prefix']+'1/travel_with_obs.csv'
 pass
 df.to_csv(file_name, index=False, sep=',')
 v = pptk.viewer(df)

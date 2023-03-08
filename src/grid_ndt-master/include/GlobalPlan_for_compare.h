@@ -24,7 +24,7 @@ struct cmp
 class AstarPlanar{
     priority_queue<SimpleSlope,vector<SimpleSlope>,cmp> open_queue;
     //list<Slope *> closed_list;
-    unordered_map<string, unordered_map<int, unordered_map<int,SimpleSlope>>> visited;
+    unordered_map<string, unordered_map<int, SimpleSlope>> visited;
     list<Slope *> global_path;
     list<SimpleSlope *> path_pose;
     // Searched path
@@ -45,104 +45,47 @@ class AstarPlanar{
     double descretized_angle;
     int ramp_steer_num;
     float start_yaw;
-    std::vector<std::vector<NodeUpdate>> state_update_table_;
+    std::vector<NodeUpdate> state_update_table_;
 
     void createStateUpdateTable(){
-        state_update_table_.resize(angle_size);
-        for (int k = 0; k < angle_size; k++)
-        { 
-            state_update_table_[k].resize(primitive_num+rip_num);
-        }
+        state_update_table_.resize(4);
 
-        for (int k = 0; k < angle_size; k++)
-        {
-            double robot_angle = descretized_angle * k;
-            double step = step_width;
-            // ROS_WARN_STREAM("!!!!!!!!!!!!!!!!!!!!!!!step is"<<step);
-            // Calculate x and y shift to next state
-            NodeUpdate nu;
-            // forward
-            nu.shift_x     = step * std::cos(robot_angle);
-            nu.shift_y     = step * std::sin(robot_angle);
-            nu.rotation    = 0;
-            nu.index_theta = 0;
-            nu.step        = step;
-            nu.back        = false;
-            state_update_table_[k][0] = nu;
+        double step = step_min;
+        // Calculate x and y shift to next state
+        NodeUpdate nu;
+        // forward
+        nu.shift_x     = step;
+        nu.shift_y     = 0;
+        nu.rotation    = 0;
+        nu.index_theta = 0;
+        nu.step        = step;
+        nu.back        = false;
+        state_update_table_[0] = nu;
 
-            for (int l = 1; l < (primitive_num-1)/2+1; l++) {
-                double turning_radius =step / (descretized_angle*l);
+        nu.shift_x     = -step;
+        nu.shift_y     = 0;
+        nu.rotation    = 0;
+        nu.index_theta = 0;
+        nu.step        = step;
+        nu.back        = false;
+        state_update_table_[1] = nu;
 
-                // Calculate right and left circle
-                // Robot moves along these circles
-                double right_circle_center_x = turning_radius * std::sin(robot_angle);
-                double right_circle_center_y = turning_radius * std::cos(robot_angle) * -1.0;
-                double left_circle_center_x  = right_circle_center_x * -1.0;
-                double left_circle_center_y  = right_circle_center_y * -1.0;
+        nu.shift_x     = 0;
+        nu.shift_y     = step;
+        nu.rotation    = 0;
+        nu.index_theta = 0;
+        nu.step        = step;
+        nu.back        = false;
+        state_update_table_[2] = nu;
 
-                // forward right
-                nu.shift_x     = right_circle_center_x + turning_radius * std::cos(M_PI_2 + robot_angle - l*descretized_angle);
-                nu.shift_y     = right_circle_center_y + turning_radius * std::sin(M_PI_2 + robot_angle - l*descretized_angle);
-                nu.rotation    = descretized_angle * - l;
-                nu.index_theta = -l;
-                nu.step        = step;
-                nu.curve       = l/primitive_num;
-                nu.back        = false;
-                state_update_table_[k][2*l-1] = nu;
+        nu.shift_x     = 0;
+        nu.shift_y     = -step;
+        nu.rotation    = 0;
+        nu.index_theta = 0;
+        nu.step        = step;
+        nu.back        = false;
+        state_update_table_[3] = nu;
 
-                // forward left
-                nu.shift_x     = left_circle_center_x + turning_radius * std::cos(-1.0 * M_PI_2 + robot_angle + l*descretized_angle);
-                nu.shift_y     = left_circle_center_y + turning_radius * std::sin(-1.0 * M_PI_2 + robot_angle + l*descretized_angle);
-                nu.rotation    = descretized_angle * l;
-                nu.index_theta = l;
-                nu.step        = step;
-                nu.curve       = l/primitive_num;
-                nu.back        = false;
-                state_update_table_[k][2*l] = nu;
-
-            }
-
-            nu.shift_x     = step_min * std::cos(robot_angle);
-            nu.shift_y     = step_min * std::sin(robot_angle);
-            nu.rotation    = 0;
-            nu.index_theta = 0;
-            nu.step        = step_min;
-            nu.back        = false;
-            state_update_table_[k][primitive_num] = nu;
-
-            for(int i=1; i<(rip_num-1)/2+1;i++){
-
-                double turning_radius = step_min / (descretized_angle*i);
-
-                // Calculate right and left circle
-                // Robot moves along these circles
-                double right_circle_center_x = turning_radius * std::sin(robot_angle);
-                double right_circle_center_y = turning_radius * std::cos(robot_angle) * -1.0;
-                double left_circle_center_x  = right_circle_center_x * -1.0;
-                double left_circle_center_y  = right_circle_center_y * -1.0;
-
-                // forward right
-                nu.shift_x     = right_circle_center_x + turning_radius * std::cos(M_PI_2 + robot_angle - i*descretized_angle);
-                nu.shift_y     = right_circle_center_y + turning_radius * std::sin(M_PI_2 + robot_angle - i*descretized_angle);
-                nu.rotation    = descretized_angle * - i;
-                nu.index_theta = -i;
-                nu.step        = step_min;
-                nu.curve       = i/rip_num;
-                nu.back        = false;
-                state_update_table_[k][primitive_num+2*i-1] = nu;
-
-                // forward left
-                nu.shift_x     = left_circle_center_x + turning_radius * std::cos(-1.0 * M_PI_2 + robot_angle + i*descretized_angle);
-                nu.shift_y     = left_circle_center_y + turning_radius * std::sin(-1.0 * M_PI_2 + robot_angle + i*descretized_angle);
-                nu.rotation    = descretized_angle * i;
-                nu.index_theta = i;
-                nu.step        = step_min;
-                nu.curve       = i/rip_num;
-                nu.back        = false;
-                state_update_table_[k][primitive_num+2*i] = nu;
-            }
-
-        }
     }
 
     bool IsOnTheRamp(const Vector3& p1, const Vector3& p2, float angle){
@@ -183,13 +126,9 @@ public:
         }
         start(2) = start_z;
         cout<<"start z is "<<start_z<<endl;
-        start_yaw = robot.getYaw();
-        if (start_yaw < 0)
-            start_yaw += 2 * M_PI;
-        int index_theta = start_yaw / descretized_angle;
-        index_theta %= angle_size;
+
         map2D.transMortonZ(start_z, morton_z);
-        cout<<"start z is "<<morton_z<<endl;
+
         map<string,Cell *>::iterator it = map2D.map_cell.find(morton_xy);
         float gridLen = map2D.getGridLen(); //resolution
         float zLen = map2D.getZLen(); //z-resolution
@@ -207,15 +146,16 @@ public:
                 // ss->second->g = 0; //start
                 // ss->second->f = ss->second->g + ss->second->h;
                 // ss->second->status = STATUS::CLOSED;
-                SimpleSlope start_slope(start, index_theta, ss->second->f, 0, STATUS::OPEN);
+                SimpleSlope start_slope(start, 0, ss->second->f, 0, STATUS::OPEN);
                 start_slope.morton_xy = morton_xy;
                 start_slope.morton_z = morton_z;
                 open_queue.emplace(start_slope);
-                visited[morton_xy][morton_z][index_theta] = start_slope;
+                visited[morton_xy][morton_z] = start_slope;
                 //开始搜索
                 //cout<<">>>>>Begin Search<<<<<"<<endl;
                 int search_count = 0;
                 while(!open_queue.empty()){
+                    
                     SimpleSlope tmp = open_queue.top();
                     open_queue.pop();
                     string cur_morton_xy = tmp.morton_xy;
@@ -224,11 +164,9 @@ public:
                     Slope * cur_slope = map2D.findSlope(cur_morton_xy, cur_morton_z);
 
                     float cur_x = tmp.pos(0), cur_y = tmp.pos(1), cur_z = tmp.pos(2);
-                    int cur_theta;
-                    //map2D.transXYMorton(cur_x, cur_y, cur_morton_xy);
-                    cur_theta = tmp.index_theta;
-                    visited[cur_morton_xy][cur_morton_z][cur_theta].status = STATUS::CLOSED;
-                    SimpleSlope * cur = &visited[cur_morton_xy][cur_morton_z][cur_theta];
+
+                    visited[cur_morton_xy][cur_morton_z].status = STATUS::CLOSED;
+                    SimpleSlope * cur = &visited[cur_morton_xy][cur_morton_z];
 
                     //if find the goal
                     if((abs(cur_x - goal(0)) <= goal_radius)
@@ -247,23 +185,14 @@ public:
                     if(demand.compare("true") == 0){
                         cmd=4;
                     }
-
-                    bool isRamp = false;
-                    if(cur->parent != NULL){
-                        if(IsOnTheRamp(cur->parent->pos, cur->pos, isRampAngle))
-                            isRamp = true;
-                    }
                    
                     // for each update
-                    for(const auto &state : state_update_table_[cur_theta]){
-                        if(isRamp && abs(state.rotation) >= ramp_steer_num * descretized_angle) continue;
+                    for(const auto &state : state_update_table_){
                         // Next state
                         float next_x     = cur_x + state.shift_x;
                         float next_y     = cur_y + state.shift_y;
-                        int next_theta = cur_theta + state.index_theta;
-                        // Avoid invalid index
-                        next_theta = (next_theta + angle_size) % angle_size;
-                        float steer_cost  = curve_weight * state.step * state.curve;
+
+                        float steer_cost  = curve_weight * state.step;
 
                         string next_morton_xy;
                         Vector3 next_pos(next_x, next_y, 0);
@@ -283,7 +212,7 @@ public:
                             }
                             ++search_count;
                             int next_morton_z = (*itS)->morton_z;
-                            SimpleSlope *next_simple_slope = &visited[next_morton_xy][next_morton_z][next_theta];
+                            SimpleSlope *next_simple_slope = &visited[next_morton_xy][next_morton_z];
                             if(next_simple_slope->status == STATUS::OPEN /*|| next_simple_slope->status == STATUS::CLOSED*/){
                                 ///test
                                 Vector3 q,itn;
@@ -292,13 +221,9 @@ public:
                                 itn = (*itS)->mean;
                                 float getup_cost = getup_weight * sqrt(pow(q(2)-itn(2), 2));
                                 if((next_simple_slope->gc) > (cur->gc + getup_cost + steer_cost)){
-                                    //remove and insert
-                                    //update g and f, and father node
-//                                    cout<<"itS g"<<(*itS)->g<<endl; ///dont know if its right
-//                                    cout<<"itemp g "<<(itTemp->second)->g<<endl;
                                     next_simple_slope->morton_xy = next_morton_xy;
                                     next_simple_slope->morton_z = next_morton_z;
-                                    next_simple_slope->index_theta = next_theta;
+                                    next_simple_slope->index_theta = 0;
                                     next_pos(2) = map2D.countPositionZ(next_morton_z);
                                     next_simple_slope->pos = next_pos;
                                     next_simple_slope->gc = cur->gc + getup_cost + steer_cost;
@@ -307,11 +232,7 @@ public:
                                     next_simple_slope->parent = cur;
                                     open_queue.emplace(*next_simple_slope);
 
-                                    // (*itS)->g = next_simple_slope->cost;
-                                    // (*itS)->f = (*itS)->g + (*itS)->h;
                                     (*itS)->father = cur_slope;
-
-                                    //cout<<"z: "<<next_morton_z<<" is OPEN"<<endl;
                                 }
                             }
                             else if(next_simple_slope->status == STATUS::NONE){
@@ -321,14 +242,11 @@ public:
                                 Vector3 q,itn;
                                 q = cur_slope->mean;
                                 itn = (*itS)->mean;
-                                float getup_cost = getup_weight * sqrt(pow(q(2)-itn(2), 2));
-                                // (*itS)->status = STATUS::OPEN;
-                                // (*itS)->g = cur_slope->g + map2D.TravelCost(/*temp->mean,(*itS)->mean*/q,itn);
-                                // (*itS)->f = (*itS)->g + (*itS)->h;
+                                float getup_cost = 0;
 
                                 next_simple_slope->morton_xy = next_morton_xy;
                                 next_simple_slope->morton_z = next_morton_z;
-                                next_simple_slope->index_theta = next_theta;
+                                next_simple_slope->index_theta = 0;
                                 next_pos(2) = map2D.countPositionZ(next_morton_z);
                                 next_simple_slope->pos = next_pos;
                                 next_simple_slope->gc = cur->gc + getup_cost + steer_cost;
@@ -345,8 +263,8 @@ public:
                             itS++;
                          }
                     }
-                }
-                    cout<<"-------Search Count Is "<<search_count<<"-------"<<endl;
+                }  
+                cout<<"-------Search Count Is "<<++search_count<<"-------"<<endl;          
             }else{
                 cout<<"1,Sth wrong with the start slope, cant find it.\n";
                 return false;
@@ -377,7 +295,7 @@ public:
                 ros_pose.pose.position.x = (j->pos)(0);
                 ros_pose.pose.position.y = (j->pos)(1);
                 ros_pose.pose.position.z = (j->pos)(2);
-                ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
+                ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
                 ros_pose.header = header;
                 path_.poses.push_back(ros_pose);
 
@@ -397,7 +315,7 @@ public:
             ros_pose.pose.position.x = (j->pos)(0);
             ros_pose.pose.position.y = (j->pos)(1);
             ros_pose.pose.position.z = (j->pos)(2);
-            ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
+            ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch,yaw);
             ros_pose.header = header;
             path_.poses.push_back(ros_pose);
 
@@ -414,85 +332,6 @@ public:
     void samplePathByStepLength(double step,TwoDmap & map2D, RobotSphere & robot) {
         if (this->path_.poses.empty()) {
             return;
-        }
-        std_msgs::Header header;
-        header.stamp = ros::Time::now();
-        header.frame_id = "/my_frame";
-        this->dense_path_.header = header;
-        this->dense_path_.poses.clear();
-        geometry_msgs::PoseStamped ros_pose;
-        ros_pose.header = header;
-        for (std::size_t i = 0; i < path_.poses.size() - 1 ; i++) {
-            double x1, y1, z1, x2, y2, z2;
-            x1 = path_.poses.at(i).pose.position.x;
-            y1 = path_.poses.at(i).pose.position.y;
-            z1 = path_.poses.at(i).pose.position.z;
-            x2 = path_.poses.at(i + 1).pose.position.x;
-            y2 = path_.poses.at(i + 1).pose.position.y;
-            z2 = path_.poses.at(i + 1).pose.position.z;
-
-            double t1 = astar::modifyTheta(tf::getYaw(path_.poses.at(i).pose.orientation));
-            double t2 = astar::modifyTheta(tf::getYaw(path_.poses.at(i + 1).pose.orientation));
-            double delta_t = t2 - t1;
-
-            if(fabs(delta_t) > M_PI)
-                delta_t = (-2 * M_PI + fabs(delta_t)) * delta_t / fabs(delta_t);
-                // -pi < delta_t < pia
-            double delta_s = std::hypot(x2 - x1, y2 - y1);
-            // straight line case
-            if (delta_t == 0) {
-                // calculate how many points need to be inserted by step
-                //cout<<"----z1: "<<z1<<", z2: "<<z2<<endl;
-                double num = delta_s / step;
-                int size = static_cast<int>(num);
-                for (int j = 0; j < size; j++) {
-                    ros_pose.pose.position.x = x1 + cos(t1) * step * j;
-                    ros_pose.pose.position.y = y1 + sin(t2) * step * j;
-                    ros_pose.pose.position.z = z1 + (j * (z2 - z1) / (size - 1)) ;
-                    InsertOrien(map2D, robot, ros_pose, t1);
-                    dense_path_.poses.push_back(ros_pose);
-                }
-            } else if (delta_t > 0) {
-                // left turn
-                // arc length
-                double R = delta_s / (sqrt(2*(1 - cos(delta_t)))); //余弦定理
-                double l = R * delta_t;
-                double center_x = x1 + cos(t1 + M_PI / 2.0)*R;
-                double center_y = y1 + sin(t1 + M_PI / 2.0)*R;
-                // delta arc length now becomes l
-                double num = l / step;
-                int size = static_cast<int>(num);
-                for (int j = 0; j < size; j++) {
-                    double heading = t1 + j*step / l * delta_t;
-                    ros_pose.pose.position.x = center_x + cos(heading - M_PI / 2.0)*R;
-                    ros_pose.pose.position.y = center_y + sin(heading - M_PI / 2.0)*R;
-                    ros_pose.pose.position.z = z1 + (j * (z2 - z1) / (size - 1));
-                    InsertOrien(map2D, robot, ros_pose, heading);
-                    //ros_pose.pose.orientation = tf::createQuaternionMsgFromYaw(heading);
-                    dense_path_.poses.push_back(ros_pose);
-                }
-            
-            } else {
-                // right turn
-                // arc length
-                double R = delta_s / (sqrt(2*(1 - cos(delta_t))));
-                double l = R * fabs(delta_t);
-                double center_x = x1 + cos(t1 - M_PI / 2.0)*R;
-                double center_y = y1 + sin(t1 - M_PI / 2.0)*R;
-                // delta arc length now becomes l
-                double num = l / step;
-                
-                int size = static_cast<int>(num);
-                for (int j = 0; j < size; j++) {
-                    double heading = t1 + j*step / l * delta_t;
-                    ros_pose.pose.position.x = center_x + cos(heading + M_PI / 2.0)*R;
-                    ros_pose.pose.position.y = center_y + sin(heading + M_PI / 2.0)*R;
-                    ros_pose.pose.position.z = z1 + (j * (z2 - z1) / (size - 1));
-                    InsertOrien(map2D, robot, ros_pose, heading);
-                    //ros_pose.pose.orientation = tf::createQuaternionMsgFromYaw(heading);
-                    dense_path_.poses.push_back(ros_pose);
-                }
-            }
         }
         cout<<"sample Path done\n";
         savingForSpeed(toStatePath(),map2D, robot);
@@ -525,7 +364,7 @@ public:
     void showDensePath(ros::Publisher& marker_pub){
         if(ros::ok()){
             if (marker_pub.getNumSubscribers() == 1){
-                marker_pub.publish(dense_path_);
+                marker_pub.publish(path_);
             }
         }
     }
@@ -533,7 +372,7 @@ public:
     std::vector<State> toStatePath() {
         std::vector<State> path;
         State state;
-        for (const auto &pose : dense_path_.poses) {
+        for (const auto &pose : path_.poses) {
             state.pose = state.pose.msgToPose(pose.pose);
             // tf::Quaternion rot(pose.pose.orientation.x, pose.pose.orientation.y,
             //                    pose.pose.orientation.z,pose.pose.orientation.w);
