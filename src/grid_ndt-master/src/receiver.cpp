@@ -163,7 +163,7 @@ void solve(const string& filename)
     if(globalPlanr.findRoute(map2D,robot,demand) && route_pub.getNumSubscribers()){
         globalPlanr.showRoute(map2D,route_pub);
         if(dense_path_pub.getNumSubscribers()){
-            globalPlanr.samplePathByStepLength(path_res,map2D,robot);
+            //globalPlanr.samplePathByStepLength(path_res,map2D,robot);
             globalPlanr.showDensePath(dense_path_pub);
         }
     }

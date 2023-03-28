@@ -53,17 +53,18 @@ int main(int argc, char **argv)
      return -1;
 
    pcl::toROSMsg(*cloud,output);
+   output.header.frame_id = "my_frame";
    std::cout<<"Converting to ROSMsg Done"<<std::endl;
    ros::Rate r(30);
 //   sleep(4);
-   if(ros::ok()){
+   while(ros::ok()){
       std::cout<<"Ros is Ok"<<std::endl;
-      if(chatter_pub.getNumSubscribers() == 1) {
-          chatter_pub.publish(output);
-          cout<<"send out\n";
-          ros::spinOnce();
-          r.sleep();
-      }
+      // if(chatter_pub.getNumSubscribers() == 1) {
+      chatter_pub.publish(output);
+      cout<<"send out\n";
+      ros::spinOnce();
+      r.sleep();
+      // }
    }
   return 1;
 }

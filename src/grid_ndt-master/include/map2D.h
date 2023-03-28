@@ -1318,7 +1318,7 @@ public:
                      Cell * cell = cell_iter->second;                                  
                      ///1-for comparision
                      /// for each node
-                     /*
+                     
                      multimap<string,OcNode *>::iterator nodeIter = map_xy.find(cell->getMorton());
                      while(nodeIter != map_xy.end()){
                          if((nodeIter->second)->morton.compare(cell->getMorton()) != 0)
@@ -1351,7 +1351,7 @@ public:
                         mArray.markers.push_back(marker);
                         }
                          nodeIter++;
-                     }*/
+                     }
 
                      ///2-for every slope
                       map<int,Slope *,CmpByKeyUD>::iterator slItor = cell->map_slope.begin();

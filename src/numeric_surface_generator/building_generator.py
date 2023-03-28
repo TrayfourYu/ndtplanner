@@ -121,16 +121,16 @@ x = x + x3 + x4 + x5
 y = y + y3 + y4 + y5
 z = z + z3 + z4 + z5
 
-x3, y3, z3 = getRect(35, 2*l+3)
-x = x + [i-2.4 for i in x3]
+x3, y3, z3 = getRect(35, 20)
+x = x + [i-10 for i in x3]
 y = y + [i-21 for i in y3]
 z = z + z3
 
-x3, y3, z3 = getRect(0.2,20)
+x3, y3, z3 = getRect(0.2,6.0)
 n_x = len(x3)
 n_y = len(y3)
 
-wall_h = 1
+wall_h = 2
 n_h = int(wall_h/res)
 z4 = []
 for i in range(n_h):
@@ -162,8 +162,119 @@ x = x + x4
 y = y + y4
 z = z + z4
 
-z = [i+1 for i in z]
 
+
+
+x3, y3, z3 = getRect(0.2,10)
+n_x = len(x3)
+n_y = len(y3)
+
+n_h = int(wall_h/res)
+z4 = []
+for i in range(n_h):
+    tmp = [i*res]
+    z4 = z4 + tmp*n_x
+
+x4 = [-i for i in y3]*n_h
+y4 = [i for i in x3]*n_h
+
+x = x + x4
+y = y + [i-11 for i in y4]
+z = z + z4
+x = x + x4
+y = y + [i-11.5 for i in y4]
+z = z + [i+6 for i in z4]
+x = x + [i-2 for i in x4]
+y = y + [i-8.5 for i in y4]
+z = z + [i+6 for i in z4]
+
+
+x3, y3, z3 = getRect(0.2,3)
+n_x = len(x3)
+n_y = len(y3)
+
+n_h = int(wall_h/res)
+z4 = []
+for i in range(n_h):
+    tmp = [i*res]
+    z4 = z4 + tmp*n_x
+
+x4 = [-i for i in y3]*n_h
+y4 = [i for i in x3]*n_h
+
+x = x + [i+l+0.2 for i in x4]
+y = y + [i-1 for i in y4]
+z = z + z4
+
+
+
+
+x3, y3, z3 = getRect(l+0.2, 0.2)
+n_x = len(x3)
+n_y = len(y3)
+
+n_h = int(wall_h/res)
+z4 = []
+for i in range(n_h):
+    tmp = [i*res]
+    z4 = z4 + tmp*n_x
+
+x4 = [i for i in y3]*n_h
+y4 = [i for i in x3]*n_h
+
+x = x + x4
+y = y + [i-1.2 for i in y4]
+z = z + z4
+x = x + x4
+y = y + [i-1.7 for i in y4]
+z = z + [i+6 for i in z4]
+
+
+
+x3, y3, z3 = getRect(0.2,16.0)
+n_x = len(x3)
+n_y = len(y3)
+
+wall_h = 3
+n_h = int(wall_h/res)
+z4 = []
+for i in range(n_h):
+    tmp = [i*res]
+    z4 = z4 + tmp*n_x
+
+x4 = [-i for i in y3]*n_h
+y4 = [i for i in x3]*n_h
+
+x = x + [i-2.0 for i in x4]
+y = y + [i-10 for i in y4]
+z = z + z4
+
+
+
+
+x3, y3, z3 = getRect(5,0.2)
+n_x = len(x3)
+n_y = len(y3)
+
+wall_h = 3
+n_h = int(wall_h/res)
+z4 = []
+for i in range(n_h):
+    tmp = [i*res]
+    z4 = z4 + tmp*n_x
+
+x4 = [i for i in y3]*n_h
+y4 = [i for i in x3]*n_h
+
+x = x + [i-0.2 for i in x4]
+y = y + [i+6 for i in y4]
+z = z + z4
+
+x = x + [i-7 for i in x4]
+y = y + [i+6 for i in y4]
+z = z + z4
+
+z = [i+1 for i in z]
 
 # if params['with_obs']:
 #     obs_x, obs_y, obs_z = addSingleCylinderObs(4, 2*np.pi/3, 1, 1, 3)

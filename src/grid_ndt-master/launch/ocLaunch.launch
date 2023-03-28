@@ -5,7 +5,7 @@ type="publishPcd"
 name="publishPcd"
 output="screen"
 >
-    <param name="filename1" type="string" value="bridge_ground.pcd" />
+    <param name="filename1" type="string" value="bridge.pcd" />
 </node>
 
 </launch>

@@ -266,7 +266,7 @@ def accRangeFromRolloverLimit(state: State, params):
     h = params['h']
     rear = params['rear']
     p = abs(state.pitch)
-    acc = params['g'] * (math.cos(p) * rear / h - math.sin(p))
+    acc = min(params['acc_comfort_max'], params['g'] * (math.cos(p) * rear / h - math.sin(p)))
     dcc = params['g'] * (-math.cos(p) * rear / h + math.sin(p))
     return {'max': acc, 'min': dcc}
 
@@ -527,8 +527,8 @@ plt.figure()
 roll, pitch = toList(path, 'psi'), toList(path, 'pitch')
 colors = [math.sqrt(roll[i]**2 + pitch[i]**2) for i in range(len(roll))]
 plt.scatter(pitch,roll, s=10, c=colors, cmap="summer")
-plt.xlim(0,10)
-plt.ylim(0,10)
+plt.xlim(0,30)
+plt.ylim(0,30)
 plt.xlabel("俯仰角 (度)")
 plt.ylabel("侧倾角 (度)")
 plt.show()
@@ -600,6 +600,7 @@ if(params['is_plot']):
     plt.figure()
     plt.plot(s,  toList(path, 'pitch'))
     plt.title('pitch')
+    plt.show()
 
     # 3d
     # fig2 = plt.figure()
