@@ -163,7 +163,7 @@ void solve(const string& filename)
     if(globalPlanr.findRoute(map2D,robot,demand) && route_pub.getNumSubscribers()){
         globalPlanr.showRoute(map2D,route_pub);
         if(dense_path_pub.getNumSubscribers()){
-            //globalPlanr.samplePathByStepLength(path_res,map2D,robot);
+            globalPlanr.samplePathByStepLength(path_res,map2D,robot);
             globalPlanr.showDensePath(dense_path_pub);
         }
     }
@@ -204,6 +204,11 @@ int main(int argc, char **argv)
   ros::param::get("~goal_radius",planner_config.goal_radius);
   ros::param::get("~is_ramp_angle",planner_config.is_ramp_angle);
   ros::param::get("~ramp_steer_num",planner_config.ramp_steer_num);
+  ros::param::get("~length",planner_config.length);
+  ros::param::get("~width",planner_config.width);
+  ros::param::get("~l",planner_config.l);
+  ros::param::get("~b",planner_config.b);
+  ros::param::get("~h",planner_config.h);
 //   float tmp_step = planner_config.step_width / 5.0;
 //   planner_config.step_min = std::max(tmp_step, resolution);
 

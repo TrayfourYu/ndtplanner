@@ -9,7 +9,8 @@
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 #include <tinyspline_ros/tinysplinecpp.h>
-//#include "Vec3.h"
+#include "ContactPoint.h"
+#include <memory>
 using namespace std;
 using namespace daysun;
 
@@ -45,7 +46,15 @@ class AstarPlanar{
     double descretized_angle;
     int ramp_steer_num;
     float start_yaw;
+    double length;
+    double width;
+    double l;
+    double b;
+    double h;
+    float stability_weight;
     std::vector<std::vector<NodeUpdate>> state_update_table_;
+    std::shared_ptr<ContactPoint> contact_point;
+    vector<double> theta_;
 
     void createStateUpdateTable(){
         state_update_table_.resize(angle_size);
@@ -166,7 +175,34 @@ public:
         goal_radius = planner_config.goal_radius;
         step_min = planner_config.step_min;
         ramp_steer_num = planner_config.ramp_steer_num;
+        length = planner_config.length;
+        width = planner_config.width;
+        l = planner_config.l;
+        b = planner_config.b;
+        h = planner_config.h;
+        stability_weight = planner_config.stability_weight;
+        contact_point = std::make_shared<ContactPoint>(length, width, l, b, h);
         createStateUpdateTable();
+    }
+
+    void TransformToGlobalFrame2D(double origin_x, const double& origin_y,const double& theta, const Vector3& pos,Vector3& target){
+        target(0) = origin_x * cos(theta) - origin_y * sin(theta) + pos(0);
+        target(1) = origin_x * sin(theta) + origin_y * cos(theta) + pos(1);
+    }
+
+    void GetGround(TwoDmap & map2D, vector<Vector3>& ground, Vector3& pos, double theta){
+        vector<double> trans = {1,1, 1,-1, 0,-1, -1,-1, -1,1, 0,1};
+        for(int i=0;i<12;i+=2){
+            Vector3 cur_ground;
+            TransformToGlobalFrame2D(trans[i]*length*0.5,trans[i+1]*width*0.5,theta,pos,cur_ground);
+            Slope * tmp = map2D.findNearstSlope(cur_ground(0), cur_ground(1), pos(2), 0.2);
+            if(tmp != nullptr){
+                cur_ground(2) = tmp->mean(2);
+            }else{
+                cur_ground(2) = pos(2);
+            }
+            ground.emplace_back(cur_ground);
+        }
     }
 
     bool findRoute(TwoDmap & map2D,RobotSphere & robot,string demand){
@@ -281,8 +317,22 @@ public:
                                 itS++;
                                 continue;
                             }
-                            ++search_count;
+
                             int next_morton_z = (*itS)->morton_z;
+                            // double theta = next_theta * descretized_angle;
+                            next_pos(2) = map2D.countPositionZ(next_morton_z);
+                            // if(isRamp){
+                            //     vector<Vector3> ground;
+                            //     GetGround(map2D, ground, next_pos, theta);
+                            //     contact_point->SetGround(ground);
+                            //     if(!contact_point->Solve())
+                            //         continue;
+                                // float stability_cost = 0.0;
+                                // if(contact_point->FindMinNESM())
+                                //     stability_cost = stability_weight * contact_point->GetNESM();
+                            // }
+
+                            ++search_count;
                             SimpleSlope *next_simple_slope = &visited[next_morton_xy][next_morton_z][next_theta];
                             if(next_simple_slope->status == STATUS::OPEN /*|| next_simple_slope->status == STATUS::CLOSED*/){
                                 ///test
@@ -299,7 +349,6 @@ public:
                                     next_simple_slope->morton_xy = next_morton_xy;
                                     next_simple_slope->morton_z = next_morton_z;
                                     next_simple_slope->index_theta = next_theta;
-                                    next_pos(2) = map2D.countPositionZ(next_morton_z);
                                     next_simple_slope->pos = next_pos;
                                     next_simple_slope->gc = cur->gc + getup_cost + steer_cost;
                                     next_simple_slope->cost = next_simple_slope->gc + h_weight * (*itS)->h;
@@ -329,7 +378,6 @@ public:
                                 next_simple_slope->morton_xy = next_morton_xy;
                                 next_simple_slope->morton_z = next_morton_z;
                                 next_simple_slope->index_theta = next_theta;
-                                next_pos(2) = map2D.countPositionZ(next_morton_z);
                                 next_simple_slope->pos = next_pos;
                                 next_simple_slope->gc = cur->gc + getup_cost + steer_cost;
                                 next_simple_slope->cost = next_simple_slope->gc +  h_weight * (*itS)->h;
@@ -362,48 +410,82 @@ public:
             header.stamp = ros::Time::now();
             header.frame_id = "/my_frame";
             path_.header = header;
+            //ContactPoint contact_point(length, width, l, b, h);
             while(i->father != NULL && j->parent!=NULL){
                 global_path.push_front(i->father);
                 path_pose.push_front(j->parent);
 
-                Vector3f normal = map2D.GetGroundNormal(i, robot);
+                //Vector3f normal = map2D.GetGroundNormal(i, robot);
+                vector<Vector3> ground;
+                Vector3 normal = {0,0,0};
+                double theta = j->index_theta * descretized_angle;
+                GetGround(map2D, ground, j->pos, theta);
+                contact_point->SetGround(ground);
+                if(contact_point->Solve())
+                    normal = contact_point->GetNormal();
+                else{
+                    Vector3f tmp = map2D.GetGroundNormal(i, robot);
+                    normal = Vector3(tmp(0),tmp(1),tmp(2));
+                }
+                
+                contact_point->FindMinNESM();
+                cout<<"NESM IS "<<contact_point->GetNESM()<<endl;
 
-                tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
-                tf::Matrix3x3 m(rot);
-                double roll, pitch, yaw;
-                m.getRPY(roll, pitch, yaw);
+                // tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
+                // tf::Matrix3x3 m(rot);
+                // double roll, pitch, yaw;
+                // m.getRPY(roll, pitch, yaw);
 
                 geometry_msgs::PoseStamped ros_pose;
                 ros_pose.pose.position.x = (j->pos)(0);
                 ros_pose.pose.position.y = (j->pos)(1);
                 ros_pose.pose.position.z = (j->pos)(2);
-                ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
+                // ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
+                ros_pose.pose.orientation.x = normal(0);
+                ros_pose.pose.orientation.y = normal(1);
+                ros_pose.pose.orientation.z = normal(2);
+                ros_pose.pose.orientation.w = 1.0;
                 ros_pose.header = header;
                 path_.poses.push_back(ros_pose);
+
+                theta_.emplace_back(theta);
 
                 i = global_path.front();
                 j = path_pose.front();
             }
     
-            Vector3f normal = map2D.GetGroundNormal(i, robot);
-
-            tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
-            tf::Matrix3x3 m(rot);
-            double roll, pitch, yaw;
-            m.getRPY(roll, pitch, yaw);
+            vector<Vector3> ground;
+            Vector3 normal = {0,0,0};
+            double theta = j->index_theta * descretized_angle;
+            GetGround(map2D, ground, j->pos, theta);
+            contact_point->SetGround(ground);
+            if(contact_point->Solve())
+                normal = contact_point->GetNormal();
+            else{
+                Vector3f tmp = map2D.GetGroundNormal(i, robot);
+                normal = Vector3(tmp(0),tmp(1),tmp(2));
+            }
+            contact_point->FindMinNESM();
+            cout<<"NESM IS "<<contact_point->GetNESM()<<endl;
 
             // Set path as ros message
             geometry_msgs::PoseStamped ros_pose;
             ros_pose.pose.position.x = (j->pos)(0);
             ros_pose.pose.position.y = (j->pos)(1);
             ros_pose.pose.position.z = (j->pos)(2);
-            ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
+            // ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
+            ros_pose.pose.orientation.x = normal(0);
+            ros_pose.pose.orientation.y = normal(1);
+            ros_pose.pose.orientation.z = normal(2);
+            ros_pose.pose.orientation.w = 1.0;
             ros_pose.header = header;
             path_.poses.push_back(ros_pose);
+            theta_.emplace_back(theta);
 
             std::reverse(path_.poses.begin(), path_.poses.end());
+            std::reverse(theta_.begin(), theta_.end());
             double time_end3 = stopwatch();
-            cout<<"Global planr done. A*: "<<(time_end3-time_start3)<<" s\n";
+            cout<<"Global planr done. A*: "<<1000*(time_end3-time_start3)<<" ms\n";
             return true;
         }else{
             cout<<"not find the road\n";
@@ -412,9 +494,11 @@ public:
     }
 
     void samplePathByStepLength(double step,TwoDmap & map2D, RobotSphere & robot) {
+        double time_start3 = stopwatch();
         if (this->path_.poses.empty()) {
             return;
         }
+        cout<<"begin sample Path\n";
         std_msgs::Header header;
         header.stamp = ros::Time::now();
         header.frame_id = "/my_frame";
@@ -427,12 +511,16 @@ public:
             x1 = path_.poses.at(i).pose.position.x;
             y1 = path_.poses.at(i).pose.position.y;
             z1 = path_.poses.at(i).pose.position.z;
+            Quater q1(path_.poses.at(i).pose.orientation.w,path_.poses.at(i).pose.orientation.x,
+                      path_.poses.at(i).pose.orientation.y,path_.poses.at(i).pose.orientation.z);
             x2 = path_.poses.at(i + 1).pose.position.x;
             y2 = path_.poses.at(i + 1).pose.position.y;
             z2 = path_.poses.at(i + 1).pose.position.z;
+            Quater q2(path_.poses.at(i + 1).pose.orientation.w,path_.poses.at(i + 1).pose.orientation.x,
+                      path_.poses.at(i + 1).pose.orientation.y,path_.poses.at(i + 1).pose.orientation.z);
 
-            double t1 = astar::modifyTheta(tf::getYaw(path_.poses.at(i).pose.orientation));
-            double t2 = astar::modifyTheta(tf::getYaw(path_.poses.at(i + 1).pose.orientation));
+            double t1 = astar::modifyTheta(theta_[i]);
+            double t2 = astar::modifyTheta(theta_[i+1]);
             double delta_t = t2 - t1;
 
             if(fabs(delta_t) > M_PI)
@@ -449,7 +537,7 @@ public:
                     ros_pose.pose.position.x = x1 + cos(t1) * step * j;
                     ros_pose.pose.position.y = y1 + sin(t2) * step * j;
                     ros_pose.pose.position.z = z1 + (j * (z2 - z1) / (size - 1)) ;
-                    InsertOrien(map2D, robot, ros_pose, t1);
+                    InsertOrien(ros_pose, t1, q1, q2, j/size);
                     dense_path_.poses.push_back(ros_pose);
                 }
             } else if (delta_t > 0) {
@@ -467,8 +555,7 @@ public:
                     ros_pose.pose.position.x = center_x + cos(heading - M_PI / 2.0)*R;
                     ros_pose.pose.position.y = center_y + sin(heading - M_PI / 2.0)*R;
                     ros_pose.pose.position.z = z1 + (j * (z2 - z1) / (size - 1));
-                    InsertOrien(map2D, robot, ros_pose, heading);
-                    //ros_pose.pose.orientation = tf::createQuaternionMsgFromYaw(heading);
+                    InsertOrien(ros_pose, heading, q1, q2, j*step / l);
                     dense_path_.poses.push_back(ros_pose);
                 }
             
@@ -488,32 +575,23 @@ public:
                     ros_pose.pose.position.x = center_x + cos(heading + M_PI / 2.0)*R;
                     ros_pose.pose.position.y = center_y + sin(heading + M_PI / 2.0)*R;
                     ros_pose.pose.position.z = z1 + (j * (z2 - z1) / (size - 1));
-                    InsertOrien(map2D, robot, ros_pose, heading);
-                    //ros_pose.pose.orientation = tf::createQuaternionMsgFromYaw(heading);
+                    InsertOrien(ros_pose, heading, q1, q2, j*step / l);
                     dense_path_.poses.push_back(ros_pose);
                 }
             }
         }
-        cout<<"sample Path done\n";
+        double time_end3 = stopwatch();
+        cout<<"sample Path done: "<<1000*(time_end3-time_start3)<<" ms\n";
         savingForSpeed(toStatePath(),map2D, robot);
     }
 
-    void InsertOrien(TwoDmap & map2D, RobotSphere & robot, geometry_msgs::PoseStamped& ros_pose, const double& heading){
-        Slope* tmp = map2D.GetSlopeFromXYZ(ros_pose.pose.position.x, ros_pose.pose.position.y,ros_pose.pose.position.z);
-        if(tmp == nullptr){
-            tf::Quaternion rot(dense_path_.poses.back().pose.orientation.x, dense_path_.poses.back().pose.orientation.y,dense_path_.poses.back().pose.orientation.z, dense_path_.poses.back().pose.orientation.w);
-            tf::Matrix3x3 m(rot);
-            double roll, pitch, yaw;
-            m.getRPY(roll, pitch, yaw);
-            ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, heading);
-        }else{
-            Vector3f normal = map2D.GetGroundNormal(tmp, robot);
-            tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
-            tf::Matrix3x3 m(rot);
-            double roll, pitch, yaw;
-            m.getRPY(roll, pitch, yaw);
-            ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, heading);
-        }
+    void InsertOrien(geometry_msgs::PoseStamped& ros_pose, const double& heading, const Quater& q1, const Quater& q2, double t){
+        Quater q = q1.slerp(t, q2);
+        tf::Quaternion rot(q.x(), q.y(), q.z(), q.w());
+        tf::Matrix3x3 m(rot);
+        double roll, pitch, yaw;
+        m.getRPY(roll, pitch, yaw);
+        ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, heading);
     }
 
 

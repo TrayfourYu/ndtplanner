@@ -24,6 +24,12 @@ struct Config
   float goal_radius;
   float is_ramp_angle = 15.0;
   int ramp_steer_num = 3;
+  double length = 0.6;
+  double width = 0.4;
+  double l = 0.35;
+  double b = 0.2;
+  double h = 0.2;
+  float stability_weight = 1.0;
 };
 
 struct SimpleSlope
