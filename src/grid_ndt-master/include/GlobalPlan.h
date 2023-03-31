@@ -11,6 +11,8 @@
 #include <tinyspline_ros/tinysplinecpp.h>
 #include "ContactPoint.h"
 #include <memory>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 using namespace std;
 using namespace daysun;
 
@@ -55,6 +57,7 @@ class AstarPlanar{
     std::vector<std::vector<NodeUpdate>> state_update_table_;
     std::shared_ptr<ContactPoint> contact_point;
     vector<double> theta_;
+    visualization_msgs::MarkerArray vehicle_poses_;
 
     void createStateUpdateTable(){
         state_update_table_.resize(angle_size);
@@ -199,7 +202,7 @@ public:
             if(tmp != nullptr){
                 cur_ground(2) = tmp->mean(2);
             }else{
-                cur_ground(2) = pos(2);
+                cur_ground(2) = pos(2)/2.0;
             }
             ground.emplace_back(cur_ground);
         }
@@ -411,6 +414,7 @@ public:
             header.frame_id = "/my_frame";
             path_.header = header;
             //ContactPoint contact_point(length, width, l, b, h);
+            int count=0;
             while(i->father != NULL && j->parent!=NULL){
                 global_path.push_front(i->father);
                 path_pose.push_front(j->parent);
@@ -418,11 +422,14 @@ public:
                 //Vector3f normal = map2D.GetGroundNormal(i, robot);
                 vector<Vector3> ground;
                 Vector3 normal = {0,0,0};
+                Vector3 vehicle_position = j->pos;
                 double theta = j->index_theta * descretized_angle;
                 GetGround(map2D, ground, j->pos, theta);
                 contact_point->SetGround(ground);
-                if(contact_point->Solve())
+                if(contact_point->Solve()){
                     normal = contact_point->GetNormal();
+                    vehicle_position = contact_point->GetCenterPosition();
+                }
                 else{
                     Vector3f tmp = map2D.GetGroundNormal(i, robot);
                     normal = Vector3(tmp(0),tmp(1),tmp(2));
@@ -430,17 +437,42 @@ public:
                 
                 contact_point->FindMinNESM();
                 cout<<"NESM IS "<<contact_point->GetNESM()<<endl;
+                
+                tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
+                tf::Matrix3x3 m(rot);
+                double roll, pitch, yaw;
+                m.getRPY(roll, pitch, yaw);
+                if(abs(pitch)>=3.0*M_PI/180.0 || abs(roll)>=3.0*M_PI/180.0){
+                    // Set our initial shape type to be a cube
+                    visualization_msgs::Marker vehicle_pose;
+                    vehicle_pose.header.frame_id = "my_frame";
+                    vehicle_pose.header.stamp = ros::Time(0);
+                    vehicle_pose.color.r = 1.0f;
+                    vehicle_pose.color.g = 1.0f;
+                    vehicle_pose.color.b = 1.0f;
+                    vehicle_pose.color.a = 0.5;
+                    vehicle_pose.ns = "vehicle_poses";
+                    vehicle_pose.type = visualization_msgs::Marker::CUBE;
+                    vehicle_pose.action = visualization_msgs::Marker::ADD;
+                    vehicle_pose.lifetime = ros::Duration();
+                    vehicle_pose.id = count++;
+                    // Set the scale of the marker -- 1x1x1 here means 1m on a side
+                    vehicle_pose.scale.x = length;
+                    vehicle_pose.scale.y = width;
+                    vehicle_pose.scale.z = 0.5;
+                    // Set the pose of the marker.
+                    vehicle_pose.pose.position.x = vehicle_position(0);
+                    vehicle_pose.pose.position.y = vehicle_position(1);
+                    vehicle_pose.pose.position.z = vehicle_position(2)+0.3;
+                    vehicle_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
+                    vehicle_poses_.markers.push_back(vehicle_pose);
+                }
 
-                // tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
-                // tf::Matrix3x3 m(rot);
-                // double roll, pitch, yaw;
-                // m.getRPY(roll, pitch, yaw);
-
+                // Set path as ros message
                 geometry_msgs::PoseStamped ros_pose;
                 ros_pose.pose.position.x = (j->pos)(0);
                 ros_pose.pose.position.y = (j->pos)(1);
                 ros_pose.pose.position.z = (j->pos)(2);
-                // ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
                 ros_pose.pose.orientation.x = normal(0);
                 ros_pose.pose.orientation.y = normal(1);
                 ros_pose.pose.orientation.z = normal(2);
@@ -459,8 +491,9 @@ public:
             double theta = j->index_theta * descretized_angle;
             GetGround(map2D, ground, j->pos, theta);
             contact_point->SetGround(ground);
-            if(contact_point->Solve())
+            if(contact_point->Solve()){
                 normal = contact_point->GetNormal();
+            }
             else{
                 Vector3f tmp = map2D.GetGroundNormal(i, robot);
                 normal = Vector3(tmp(0),tmp(1),tmp(2));
@@ -473,7 +506,6 @@ public:
             ros_pose.pose.position.x = (j->pos)(0);
             ros_pose.pose.position.y = (j->pos)(1);
             ros_pose.pose.position.z = (j->pos)(2);
-            // ros_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
             ros_pose.pose.orientation.x = normal(0);
             ros_pose.pose.orientation.y = normal(1);
             ros_pose.pose.orientation.z = normal(2);
@@ -598,6 +630,15 @@ public:
     void showRoute(TwoDmap & map2D,ros::Publisher marker_pub){
         map2D.showSlopeList(marker_pub,global_path,4);
         cout<<"route show done\n";
+    }
+
+    void showVehicePoses(ros::Publisher marker_pub){
+        if(ros::ok()){
+            if (marker_pub.getNumSubscribers() == 1){
+                marker_pub.publish(vehicle_poses_);
+            }
+        }
+        cout<<"vehicle poses show done\n";
     }
 
     void showDensePath(ros::Publisher& marker_pub){

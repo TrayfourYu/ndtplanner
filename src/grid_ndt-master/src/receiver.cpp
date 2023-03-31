@@ -35,7 +35,7 @@ RobotSphere robot(0.5); //radius--variable--according to the range of map
 //test-0.25, sys-0.125 vision-1.5 bag-1
 daysun::TwoDmap map2D(0.5,0.1);
 MyInteractiveMaker StartAndGoal{};
-ros::Publisher marker_pub,change_pub,markerArray_pub,markerArray_pub2,marker_pub_bo,route_pub,dense_path_pub/*,del_pub*/;
+ros::Publisher marker_pub,change_pub,markerArray_pub,markerArray_pub2,vehicle_poses_pub,marker_pub_bo,route_pub,dense_path_pub/*,del_pub*/;
 string demand;
 double path_res;
 Config planner_config;
@@ -162,6 +162,7 @@ void solve(const string& filename)
     AstarPlanar globalPlanr(robot.getPosition(),robot.getGoal(), planner_config);
     if(globalPlanr.findRoute(map2D,robot,demand) && route_pub.getNumSubscribers()){
         globalPlanr.showRoute(map2D,route_pub);
+        globalPlanr.showVehicePoses(vehicle_poses_pub);
         if(dense_path_pub.getNumSubscribers()){
             globalPlanr.samplePathByStepLength(path_res,map2D,robot);
             globalPlanr.showDensePath(dense_path_pub);
@@ -228,6 +229,7 @@ int main(int argc, char **argv)
   //startandgoal_pub = n.advertise<visualization_msgs::MarkerArray>("start_goal_marker", 1000);
   markerArray_pub = n.advertise<visualization_msgs::MarkerArray>("traversibility_marker_array", 1000);
   markerArray_pub2 = n.advertise<visualization_msgs::MarkerArray>("tra_check_marker_array", 1000);
+  vehicle_poses_pub = n.advertise<visualization_msgs::MarkerArray>("vehicle_poses", 1000);
   change_pub = n.advertise<visualization_msgs::MarkerArray>("change_marker_array", 1000);
 //  del_pub = n.advertise<visualization_msgs::MarkerArray>("del_marker_array", 1000);
   marker_pub_bo = n.advertise<visualization_msgs::MarkerArray>("bottom_marker_array", 1000);

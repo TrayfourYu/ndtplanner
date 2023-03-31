@@ -1319,39 +1319,39 @@ public:
                      ///1-for comparision
                      /// for each node
                      
-                     multimap<string,OcNode *>::iterator nodeIter = map_xy.find(cell->getMorton());
-                     while(nodeIter != map_xy.end()){
-                         if((nodeIter->second)->morton.compare(cell->getMorton()) != 0)
-                             break;
-                         i++;node_num++;
-                        //add marker
-                         if((nodeIter->second)->_isSlope != true){
-                        visualization_msgs::Marker marker;
-                        marker.ns = "basic_shapes";
-                        marker.header.frame_id = "/my_frame";
-                        marker.header.stamp = ros::Time::now();
-                        marker.id = i; //same namespace and id will overwrite the old one
-                        marker.type = shape;
-                        marker.action = visualization_msgs::Marker::ADD;
-                        marker.pose.position.x = (nodeIter->second)->xyz_centroid(0);
-                        marker.pose.position.y = (nodeIter->second)->xyz_centroid(1);
-                         marker.pose.position.z = (nodeIter->second)->xyz_centroid(2);
-                        marker.pose.orientation.x = 0;
-                        marker.pose.orientation.y = 0;
-                        marker.pose.orientation.z = 1;
-                        marker.pose.orientation.w = 1.0;
-                        marker.scale.x = radius-0.01; //the same as radius
-                        marker.scale.y = radius-0.01;
-                        marker.scale.z = 0.01;
-                        marker.color.a = 0.9;
-                        marker.color.r = 0.8;
-                        marker.color.g =0.8;
-                        marker.color.b =0.8;
-                        marker.lifetime = ros::Duration();
-                        mArray.markers.push_back(marker);
-                        }
-                         nodeIter++;
-                     }
+                    //  multimap<string,OcNode *>::iterator nodeIter = map_xy.find(cell->getMorton());
+                    //  while(nodeIter != map_xy.end()){
+                    //      if((nodeIter->second)->morton.compare(cell->getMorton()) != 0)
+                    //          break;
+                    //      i++;node_num++;
+                    //     //add marker
+                    //      if((nodeIter->second)->_isSlope != true){
+                    //     visualization_msgs::Marker marker;
+                    //     marker.ns = "basic_shapes";
+                    //     marker.header.frame_id = "/my_frame";
+                    //     marker.header.stamp = ros::Time::now();
+                    //     marker.id = i; //same namespace and id will overwrite the old one
+                    //     marker.type = shape;
+                    //     marker.action = visualization_msgs::Marker::ADD;
+                    //     marker.pose.position.x = (nodeIter->second)->xyz_centroid(0);
+                    //     marker.pose.position.y = (nodeIter->second)->xyz_centroid(1);
+                    //      marker.pose.position.z = (nodeIter->second)->xyz_centroid(2);
+                    //     marker.pose.orientation.x = 0;
+                    //     marker.pose.orientation.y = 0;
+                    //     marker.pose.orientation.z = 1;
+                    //     marker.pose.orientation.w = 1.0;
+                    //     marker.scale.x = radius-0.01; //the same as radius
+                    //     marker.scale.y = radius-0.01;
+                    //     marker.scale.z = 0.01;
+                    //     marker.color.a = 0.9;
+                    //     marker.color.r = 0.8;
+                    //     marker.color.g =0.8;
+                    //     marker.color.b =0.8;
+                    //     marker.lifetime = ros::Duration();
+                    //     mArray.markers.push_back(marker);
+                    //     }
+                    //      nodeIter++;
+                    //  }
 
                      ///2-for every slope
                       map<int,Slope *,CmpByKeyUD>::iterator slItor = cell->map_slope.begin();
