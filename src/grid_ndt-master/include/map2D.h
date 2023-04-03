@@ -1517,17 +1517,17 @@ public:
         if(mit != map_cell.end()){
             map<int,Slope *,CmpByKeyUD>::iterator sit =   (mit->second)->map_slope.begin();
             while(sit != (mit->second)->map_slope.end()){
-                if(sit->second->up != true){
-                    float z_diff = abs(z- (sit->second->mean(2)));
-                    if(z_diff < min_z_diff){
-                        min_z_diff_slope = (sit->second);
-                        sit++;
-                        if(sit != (mit->second)->map_slope.end())
-                            next_up_slope = (sit->second);
-                        sit--;
-                        min_z_diff = z_diff;
-                    }
+                //if(sit->second->up != true){
+                float z_diff = abs(z- (sit->second->mean(2)));
+                if(z_diff < min_z_diff){
+                    min_z_diff_slope = (sit->second);
+                    sit++;
+                    if(sit != (mit->second)->map_slope.end())
+                        next_up_slope = (sit->second);
+                    sit--;
+                    min_z_diff = z_diff;
                 }
+                //}
                 sit++;
             }
             if(next_up_slope != nullptr){

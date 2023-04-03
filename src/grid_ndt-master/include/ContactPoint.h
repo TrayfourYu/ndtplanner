@@ -63,6 +63,7 @@ private:
     Vector3 center_pos_;
     Vector3 centroid_pos_;
     double NESM_;
+    double buffer_ = 0.05;
 
     Vector3 GetCentroid(const vector<Vector3>& contact_point, const Vector3& normal){
         return (contact_point[3]-contact_point[0])*(l_/length_)
@@ -101,13 +102,13 @@ private:
             double height_differ;
             //2
             height_differ = (contact_point[1](2) + contact_point[2](2))*0.5 - ground_[2](2);
-            if(height_differ < -0.03) continue;
+            if(height_differ < -buffer_) continue;
             //5
             height_differ = (contact_point[0](2) + contact_point[3](2))*0.5 - ground_[5](2);
-            if(height_differ < -0.03) continue;
+            if(height_differ < -buffer_) continue;
             height_differ = contact_point[i](2) - rectangle_ground[i](2);
-            if(height_differ < -0.03) continue;            
-            if(abs(height_differ) <= 0.03){
+            if(height_differ < -buffer_) continue;            
+            if(abs(height_differ) <= buffer_){
                 ignore = -1;
             }
             Plane contact_plane(contact_point[(i+1)%4],contact_point[(i+2)%4],contact_point[(i+3)%4]);
@@ -141,13 +142,13 @@ private:
             double height_differ;
             //3号点
             height_differ = (contact_point[2](2)*2.0 - contact_point[1](2)) - ground_[3](2);
-            if(height_differ < 0) continue;
+            if(height_differ < -buffer_) continue;
             //4号点
             height_differ = (contact_point[3](2)*2.0 - contact_point[0](2)) - ground_[4](2);
-            if(height_differ < 0) continue;
+            if(height_differ < -buffer_) continue;
             height_differ = contact_point[i](2) - rectangle_ground[i](2);
-            if(height_differ < -0.03) continue;            
-            if(abs(height_differ) <= 0.03){
+            if(height_differ < -buffer_) continue;            
+            if(abs(height_differ) <= buffer_){
                 ignore = -1;
             }
             vector<Vector3> vehicle_point = {contact_point[0], contact_point[1], 
@@ -181,13 +182,13 @@ private:
             double height_differ;
             //0号点
             height_differ = (contact_point[0](2)*2.0 - contact_point[3](2)) - ground_[0](2);
-            if(height_differ < 0) continue;
+            if(height_differ < -buffer_) continue;
             //1号点
             height_differ = (contact_point[1](2)*2.0 - contact_point[2](2)) - ground_[1](2);
-            if(height_differ < 0) continue;
+            if(height_differ < -buffer_) continue;
             height_differ = contact_point[i](2) - rectangle_ground[i](2);
-            if(height_differ < -0.03) continue;            
-            if(abs(height_differ) <= 0.03){
+            if(height_differ < -buffer_) continue;            
+            if(abs(height_differ) <= buffer_){
                 ignore = -1;
             }
             vector<Vector3> vehicle_point = {contact_point[0]*2.0 - contact_point[3],

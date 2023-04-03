@@ -70,13 +70,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /traversibility_marker_array
       Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /route_marker_array
@@ -152,7 +152,7 @@ Visualization Manager:
       Marker Topic: /vehicle_poses
       Name: MarkerArray
       Namespaces:
-        vehicle_poses: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -180,25 +180,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 9.23403454
+      Distance: 17.9638863
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 8.13166428
-        Y: 3.76822734
-        Z: 3.86471265e-06
+        X: 10.6825609
+        Y: 4.12408257
+        Z: 3.69489999e-06
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.750395834
+      Pitch: 0.315394312
       Target Frame: <Fixed Frame>
       Value: ThirdPersonFollower (rviz)
-      Yaw: 6.07357931
+      Yaw: 0.338580459
     Saved: ~
 Window Geometry:
   Displays:

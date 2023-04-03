@@ -202,10 +202,32 @@ public:
             if(tmp != nullptr){
                 cur_ground(2) = tmp->mean(2);
             }else{
-                cur_ground(2) = pos(2)/2.0;
+                cur_ground(2) = pos(2);
             }
             ground.emplace_back(cur_ground);
         }
+    }
+
+    void GetOrientation(double theta, const Vector3& normal, geometry_msgs::PoseStamped& m){
+        Vector3 yaw_vec(cos(theta), sin(theta), 0.0);
+        Vector3 z(0.0,0.0,1.0);
+        Vector3 yaw_normal = yaw_vec.cross(z);
+
+        Vector3 intersection = yaw_normal.cross(normal);
+        if(intersection.dot(yaw_vec) < 0)
+            intersection = intersection*(-1.0);
+        Vector3 rot_y = normal.cross(intersection);
+
+        Mat<3> rot_matrix;
+        rot_matrix.col(0) = Point3(intersection(0),intersection(1),intersection(2));
+        rot_matrix.col(1) = Point3(rot_y(0),rot_y(1), rot_y(2));
+        rot_matrix.col(2) = Point3(normal(0), normal(1), normal(2));
+        Quater quat(rot_matrix);
+
+        m.pose.orientation.x = quat.x();
+        m.pose.orientation.y = quat.y();
+        m.pose.orientation.z = quat.z();
+        m.pose.orientation.w = quat.w();
     }
 
     bool findRoute(TwoDmap & map2D,RobotSphere & robot,string demand){
@@ -415,6 +437,7 @@ public:
             path_.header = header;
             //ContactPoint contact_point(length, width, l, b, h);
             int count=0;
+            Vector3 last_normal = {0,0,0};
             while(i->father != NULL && j->parent!=NULL){
                 global_path.push_front(i->father);
                 path_pose.push_front(j->parent);
@@ -429,20 +452,40 @@ public:
                 if(contact_point->Solve()){
                     normal = contact_point->GetNormal();
                     vehicle_position = contact_point->GetCenterPosition();
+                    last_normal = normal;
                 }
                 else{
-                    Vector3f tmp = map2D.GetGroundNormal(i, robot);
-                    normal = Vector3(tmp(0),tmp(1),tmp(2));
+                    // Vector3f tmp = map2D.GetGroundNormal(i, robot);
+                    // normal = Vector3(tmp(0),tmp(1),tmp(2));
+                    normal = last_normal;
                 }
                 
                 contact_point->FindMinNESM();
                 cout<<"NESM IS "<<contact_point->GetNESM()<<endl;
+                // Set path as ros message
+                geometry_msgs::PoseStamped ros_pose;
+                ros_pose.pose.position.x = (j->pos)(0);
+                ros_pose.pose.position.y = (j->pos)(1);
+                ros_pose.pose.position.z = (j->pos)(2);
+                GetOrientation(j->index_theta * descretized_angle, normal, ros_pose);
+                ros_pose.header = header;
+                path_.poses.push_back(ros_pose);
+
+                theta_.emplace_back(theta);
                 
                 tf::Quaternion rot(normal(0), normal(1), normal(2), 1.0);
                 tf::Matrix3x3 m(rot);
                 double roll, pitch, yaw;
                 m.getRPY(roll, pitch, yaw);
                 if(abs(pitch)>=3.0*M_PI/180.0 || abs(roll)>=3.0*M_PI/180.0){
+                    for(auto&  g:ground){
+                        cout<<"( gx: "<<g(0)<<", gy: "<<g(1)<<", gz: "<<g(2)<<"\n";
+                    }
+                    auto cp = contact_point->GetContactPoints();
+                    for(auto& p:cp){
+                        cout<<"( cp_x: "<<p(0)<<", cp_y: "<<p(1)<<", cp_z: "<<p(2)<<"\n";
+                    }
+                    cout<<"pitch: "<<pitch<<", roll: "<<roll<<"\n";
                     // Set our initial shape type to be a cube
                     visualization_msgs::Marker vehicle_pose;
                     vehicle_pose.header.frame_id = "my_frame";
@@ -459,28 +502,16 @@ public:
                     // Set the scale of the marker -- 1x1x1 here means 1m on a side
                     vehicle_pose.scale.x = length;
                     vehicle_pose.scale.y = width;
-                    vehicle_pose.scale.z = 0.5;
+                    vehicle_pose.scale.z = 3.0*h;
                     // Set the pose of the marker.
                     vehicle_pose.pose.position.x = vehicle_position(0);
                     vehicle_pose.pose.position.y = vehicle_position(1);
-                    vehicle_pose.pose.position.z = vehicle_position(2)+0.3;
-                    vehicle_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, j->index_theta * descretized_angle);
+                    vehicle_pose.pose.position.z = vehicle_position(2)+1.5*h+0.1;
+                    //GetOrientation(j->index_theta * descretized_angle, normal, vehicle_pose.pose);
+                    vehicle_pose.pose.orientation = ros_pose.pose.orientation;
                     vehicle_poses_.markers.push_back(vehicle_pose);
                 }
 
-                // Set path as ros message
-                geometry_msgs::PoseStamped ros_pose;
-                ros_pose.pose.position.x = (j->pos)(0);
-                ros_pose.pose.position.y = (j->pos)(1);
-                ros_pose.pose.position.z = (j->pos)(2);
-                ros_pose.pose.orientation.x = normal(0);
-                ros_pose.pose.orientation.y = normal(1);
-                ros_pose.pose.orientation.z = normal(2);
-                ros_pose.pose.orientation.w = 1.0;
-                ros_pose.header = header;
-                path_.poses.push_back(ros_pose);
-
-                theta_.emplace_back(theta);
 
                 i = global_path.front();
                 j = path_pose.front();
